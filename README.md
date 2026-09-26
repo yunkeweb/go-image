@@ -73,10 +73,10 @@ img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true))
 | `New` | canvas width and height |
 | `Animate` | frame builder callback |
 
-Functional options (`WithAutoOrientation`, `WithDecodeAnimation`, `WithBlendingColor`, `WithStrip`) apply to a single call. Shared settings live in `Config` / `DefaultConfig` and attach with `WithConfig`:
+Functional options (`WithAutoOrientation`, `WithDecodeAnimation`, `WithBlendingColor`, `WithStrip`) apply to a single call. Shared settings live in `Config` / `DefaultConfig()` and attach with `WithConfig`:
 
 ```go
-cfg := goimage.DefaultConfig
+cfg := goimage.DefaultConfig()
 cfg.DecodeAnimation = false
 photo := goimage.Open("input.png", goimage.WithConfig(cfg))
 canvas := goimage.New(800, 600, goimage.WithConfig(cfg))

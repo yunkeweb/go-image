@@ -1,9 +1,9 @@
 # v0.1.8 - Remove Manager driver abstraction
 
-`Manager` and `Driver()` are gone. Package defaults live in `DefaultConfig`. Reuse a setup with `WithConfig` on `Open`, `Decode`, `New`, and `Animate`.
+`Manager` and `Driver()` are gone. Package defaults live in `DefaultConfig()`. Reuse a setup with `WithConfig` on `Open`, `Decode`, `New`, and `Animate`.
 
 ```go
-cfg := goimage.DefaultConfig
+cfg := goimage.DefaultConfig()
 cfg.DecodeAnimation = false
 img := goimage.Open("photo.jpg", goimage.WithConfig(cfg))
 ```

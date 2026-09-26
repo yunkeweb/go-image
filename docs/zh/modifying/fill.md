@@ -1,6 +1,6 @@
 # Fill 填充
 
-不带额外坐标的 `Fill` 铺满整张画布。再传两个 int 时，从该种子点做洪水填充，替换连通的同色区域。
+`Fill` 铺满每一帧的全部像素。`FloodFill` 从种子点出发，替换四连通的同色区域。
 
 ## 功能概述
 
@@ -9,7 +9,8 @@
 ## 签名
 
 ```go
-func (img *Image) Fill(col any, xy ...int) *Image
+func (img *Image) Fill(col any) *Image
+func (img *Image) FloodFill(x, y int, col any) *Image
 ```
 
 ## 参数说明
@@ -17,7 +18,7 @@ func (img *Image) Fill(col any, xy ...int) *Image
 | 名称 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `col` | `any` | 必填 | 填充色 |
-| `xy` | `...int` | 省略 = 整张画布 | `len >= 2` 时从 `(xy[0], xy[1])` 洪水填充 |
+| `x`, `y` | `int` | FloodFill 必填 | 种子像素 |
 
 ## 示例：包级画布填充
 
@@ -53,7 +54,7 @@ import (
 )
 
 func main() {
-	img := goimage.Open("mask.png").Fill("#22c55e", 10, 10)
+	img := goimage.Open("mask.png").FloodFill(10, 10, "#22c55e")
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}
@@ -67,3 +68,4 @@ func main() {
 
 - 洪水填充在任何颜色差异处停止，包括抗锯齿边缘。
 - 非法 `col` 写入 `ErrColor` 并跳过绘制。
+- `Fill(c, x, y)` 不再表示洪水填充，请改用 `FloodFill`。

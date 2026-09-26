@@ -8,6 +8,7 @@ import (
 	"github.com/yunkeweb/go-image/internal/pool"
 )
 
+// Flip mirrors n vertically.
 func Flip(n *image.NRGBA) *image.NRGBA {
 	b := n.Bounds()
 	dst := pool.AcquireRect(b)
@@ -20,6 +21,7 @@ func Flip(n *image.NRGBA) *image.NRGBA {
 	return dst
 }
 
+// Flop mirrors n horizontally.
 func Flop(n *image.NRGBA) *image.NRGBA {
 	b := n.Bounds()
 	dst := pool.AcquireRect(b)
@@ -32,6 +34,7 @@ func Flop(n *image.NRGBA) *image.NRGBA {
 	return dst
 }
 
+// Rotate turns src by angleDeg degrees around its center, filling new pixels with bg.
 func Rotate(src *image.NRGBA, angleDeg float64, bg color.NRGBA) *image.NRGBA {
 	angleDeg = math.Mod(angleDeg, 360)
 	if angleDeg < 0 {
@@ -192,6 +195,7 @@ func lerpU8(a, b uint8, t float64) uint8 {
 }
 
 // OrientPixels applies EXIF orientation 2–8. Orientation 1 is a no-op.
+// OrientPixels applies EXIF orientation 1..8 to n.
 func OrientPixels(n *image.NRGBA, orient int) *image.NRGBA {
 	switch orient {
 	case 2:

@@ -67,7 +67,7 @@ import (
 )
 
 func main() {
-	cfg := goimage.DefaultConfig
+	cfg := goimage.DefaultConfig()
 	cfg.AutoOrientation = true
 	cfg.DecodeAnimation = false
 	base := goimage.Open("hero.jpg", goimage.WithConfig(cfg))

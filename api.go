@@ -20,7 +20,8 @@ func result(img *Image, err error) *Image {
 }
 
 // New creates a transparent canvas of the given size.
-// Options apply to this image only.
+// Options apply to this image only. Width and height must be >= 1;
+// overflow-sized canvases set ErrInvalidDimensions.
 func New(width, height int, opts ...Option) *Image {
 	return newCanvas(width, height, applyOptions(opts))
 }
@@ -31,6 +32,7 @@ func Create(width, height int, opts ...Option) *Image {
 }
 
 // Open decodes an image from a filesystem path.
+// The first failure is stored on the returned Image and retrieved with Err().
 func Open(path string, opts ...Option) *Image {
 	return result(decodeFile(path, applyOptions(opts)))
 }
@@ -66,7 +68,14 @@ func newCanvas(width, height int, cfg Config) *Image {
 	if width < 1 || height < 1 {
 		return failed(wrap(ErrGeometry, "width and height must be >= 1"))
 	}
-	img := newImage([]Frame{{Img: pool.Blank(width, height, ColorTransparent.NRGBA())}}, cfg)
+	if _, err := pool.PixBytes(width, height); err != nil {
+		return failed(wrap(ErrInvalidDimensions, "invalid dimensions"))
+	}
+	blank := pool.Blank(width, height, ColorTransparent.NRGBA())
+	if blank == nil {
+		return failed(wrap(ErrInvalidDimensions, "invalid dimensions"))
+	}
+	img := newImage([]Frame{{img: blank}}, cfg)
 	img.origin = Origin{MediaType: "application/octet-stream"}
 	return img
 }
@@ -91,7 +100,11 @@ func fromStdImage(src image.Image, cfg Config) (*Image, error) {
 	if src == nil {
 		return nil, wrap(ErrDecoder, "nil image")
 	}
-	img := newImage([]Frame{{Img: pool.AsNRGBA(src)}}, cfg)
+	n := pool.AsNRGBA(src)
+	if n == nil {
+		return nil, wrap(ErrInvalidDimensions, "invalid dimensions")
+	}
+	img := newImage([]Frame{{img: n}}, cfg)
 	img.origin = Origin{MediaType: "application/octet-stream"}
 	return img, nil
 }
@@ -131,14 +144,18 @@ func decodeBytes(data []byte, path string, cfg Config) (*Image, error) {
 			origin.MediaType = f.MediaType()
 		}
 	}
-	img := newImage([]Frame{{Img: pool.AsNRGBA(decoded)}}, cfg)
+	converted := pool.AsNRGBA(decoded)
+	if converted == nil {
+		return nil, wrap(ErrInvalidDimensions, "invalid dimensions")
+	}
+	img := newImage([]Frame{{img: converted}}, cfg)
 	img.origin = origin
 	if format == "jpeg" {
 		if exif, orient := encoder.ParseJPEGExif(data); exif != nil {
-			img.exif = exif
+			img.exif = cloneExif(exif)
 			if cfg.AutoOrientation {
 				applyOrientation(img, orient)
-				img.markOrientationNormal()
+				img.clearOrientation()
 			}
 		}
 	}
@@ -149,16 +166,19 @@ func imageFromGIF(g *gif.GIF, cfg Config, origin Origin) *Image {
 	if g == nil || len(g.Image) == 0 {
 		return failed(wrap(ErrDecoder, "empty gif"))
 	}
-	if !cfg.DecodeAnimation || len(g.Image) == 1 {
-		img := newImage([]Frame{{Img: pool.AsNRGBA(g.Image[0])}}, cfg)
-		img.origin = origin
-		img.loops = g.LoopCount
-		return img
-	}
 	raw := modifier.CompositeGIF(g)
+	if len(raw) == 0 {
+		return failed(wrap(ErrDecoder, "empty gif"))
+	}
+	if !cfg.DecodeAnimation && len(raw) > 1 {
+		for i := 1; i < len(raw); i++ {
+			pool.Release(raw[i].Img)
+		}
+		raw = raw[:1]
+	}
 	frames := make([]Frame, len(raw))
 	for i, f := range raw {
-		frames[i] = Frame(f)
+		frames[i] = frameFromAnim(f)
 	}
 	img := newImage(frames, cfg)
 	img.loops = g.LoopCount
@@ -183,7 +203,7 @@ func buildAnimation(cfg Config, init func(*Animation)) *Image {
 	return img
 }
 
-// Animation collects frames for Animate.
+// Animation collects frames for Animate. It is not safe for concurrent use.
 type Animation struct {
 	cfg    Config
 	frames []Frame
@@ -191,6 +211,7 @@ type Animation struct {
 	err    error
 }
 
+// Add appends a clone of src's frames with the given delay in seconds.
 func (a *Animation) Add(src *Image, delaySeconds float64) *Animation {
 	if a.err != nil {
 		return a
@@ -210,10 +231,12 @@ func (a *Animation) Add(src *Image, delaySeconds float64) *Animation {
 	return a
 }
 
+// AddImage is an alias of Add.
 func (a *Animation) AddImage(src *Image, delaySeconds float64) *Animation {
 	return a.Add(src, delaySeconds)
 }
 
+// AddFile decodes path and appends it as a frame.
 func (a *Animation) AddFile(path string, delaySeconds float64) *Animation {
 	if a.err != nil {
 		return a
@@ -226,11 +249,13 @@ func (a *Animation) AddFile(path string, delaySeconds float64) *Animation {
 	return a.Add(img, delaySeconds)
 }
 
+// SetLoops stores the Netscape loop count (0 means loop forever).
 func (a *Animation) SetLoops(n int) *Animation {
 	a.loops = n
 	return a
 }
 
+// Loops is an alias of SetLoops.
 func (a *Animation) Loops(n int) *Animation { return a.SetLoops(n) }
 
 func parsePercentOrIndex(v any, total int) (int, error) {

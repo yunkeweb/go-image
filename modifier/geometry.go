@@ -1,3 +1,4 @@
+// Package modifier implements raster algorithms used by the goimage root package.
 package modifier
 
 import (
@@ -18,6 +19,7 @@ type Size struct {
 	Pivot         Point
 }
 
+// AspectRatio returns Width/Height, or 0 when Height is 0.
 func (s Size) AspectRatio() float64 {
 	if s.Height == 0 {
 		return 0
@@ -25,22 +27,29 @@ func (s Size) AspectRatio() float64 {
 	return float64(s.Width) / float64(s.Height)
 }
 
+// FitsInto reports whether s is smaller than or equal to other on both axes.
 func (s Size) FitsInto(other Size) bool {
 	return s.Width <= other.Width && s.Height <= other.Height
 }
 
+// IsLandscape reports whether Width is greater than Height.
 func (s Size) IsLandscape() bool { return s.Width > s.Height }
-func (s Size) IsPortrait() bool  { return s.Width < s.Height }
 
+// IsPortrait reports whether Width is less than Height.
+func (s Size) IsPortrait() bool { return s.Width < s.Height }
+
+// MovePivot sets the 9-point pivot named by position, plus an extra offset.
 func (s Size) MovePivot(position string, offsetX, offsetY int) Size {
 	s.Pivot = PivotPoint(s.Width, s.Height, position, offsetX, offsetY)
 	return s
 }
 
+// RelativePositionTo returns the vector from other.Pivot to s.Pivot.
 func (s Size) RelativePositionTo(other Size) Point {
 	return Point{X: s.Pivot.X - other.Pivot.X, Y: s.Pivot.Y - other.Pivot.Y}
 }
 
+// AlignPivotTo moves s so its named pivot matches ref's named pivot.
 func (s Size) AlignPivotTo(ref Size, position string) Size {
 	reference := Size{Width: ref.Width, Height: ref.Height}.MovePivot(position, 0, 0)
 	moved := s.MovePivot(position, 0, 0)
@@ -109,6 +118,7 @@ func (r Resizer) proportionalHeight(size Size) int {
 	return max(1, int(math.Round(float64(r.Width)/ar)))
 }
 
+// Resize returns the target size for an absolute resize of size.
 func (r Resizer) Resize(size Size) Size {
 	out := size
 	switch {
@@ -125,6 +135,7 @@ func (r Resizer) Resize(size Size) Size {
 	return out
 }
 
+// ResizeDown is Resize that never enlarges size.
 func (r Resizer) ResizeDown(size Size) Size {
 	out := r.Resize(size)
 	out.Width = min(out.Width, size.Width)
@@ -132,6 +143,7 @@ func (r Resizer) ResizeDown(size Size) Size {
 	return out
 }
 
+// Scale fits size inside the resizer box, keeping aspect ratio.
 func (r Resizer) Scale(size Size) Size {
 	out := size
 	switch {
@@ -148,6 +160,7 @@ func (r Resizer) Scale(size Size) Size {
 	return out
 }
 
+// ScaleDown is Scale that never enlarges size.
 func (r Resizer) ScaleDown(size Size) Size {
 	out := size
 	switch {
@@ -164,6 +177,7 @@ func (r Resizer) ScaleDown(size Size) Size {
 	return out
 }
 
+// Cover returns the size that fills the resizer box, keeping aspect ratio.
 func (r Resizer) Cover(size Size) (Size, error) {
 	if !r.HasW || !r.HasH {
 		return Size{}, errs.Wrap(errs.ErrGeometry, "target size needs width and height")
@@ -179,6 +193,7 @@ func (r Resizer) Cover(size Size) (Size, error) {
 	return out, nil
 }
 
+// Contain returns the size that fits inside the resizer box, keeping aspect ratio.
 func (r Resizer) Contain(size Size) (Size, error) {
 	if !r.HasW || !r.HasH {
 		return Size{}, errs.Wrap(errs.ErrGeometry, "target size needs width and height")
@@ -194,6 +209,7 @@ func (r Resizer) Contain(size Size) (Size, error) {
 	return out, nil
 }
 
+// ContainDown is Contain that never enlarges size.
 func (r Resizer) ContainDown(size Size) (Size, error) {
 	if !r.HasW || !r.HasH {
 		return Size{}, errs.Wrap(errs.ErrGeometry, "target size needs width and height")
@@ -209,6 +225,7 @@ func (r Resizer) ContainDown(size Size) (Size, error) {
 	return out, nil
 }
 
+// PivotPoint returns the 9-point anchor for a w×h rectangle.
 func PivotPoint(w, h int, position string, ox, oy int) Point {
 	switch strings.ToLower(strings.TrimSpace(position)) {
 	case "top", "top-center", "top-middle", "center-top", "middle-top":

@@ -19,6 +19,7 @@ const (
 	JP2  = "jp2"
 )
 
+// MediaType returns the MIME type for format.
 func MediaType(format string) string {
 	switch format {
 	case JPEG:
@@ -44,6 +45,7 @@ func MediaType(format string) string {
 	}
 }
 
+// FileExtension returns the preferred extension without a dot.
 func FileExtension(format string) string {
 	switch format {
 	case JPEG:
@@ -69,6 +71,7 @@ func FileExtension(format string) string {
 	}
 }
 
+// SupportedEncode reports whether the Go driver can encode format.
 func SupportedEncode(format string) bool {
 	switch format {
 	case JPEG, PNG, GIF, WEBP, BMP, TIFF:
@@ -78,6 +81,7 @@ func SupportedEncode(format string) bool {
 	}
 }
 
+// ParseFormat maps an extension or MIME type onto a canonical format name.
 func ParseFormat(identifier string) (string, error) {
 	s := strings.ToLower(strings.TrimSpace(identifier))
 	s = strings.TrimPrefix(s, ".")
@@ -108,6 +112,7 @@ func ParseFormat(identifier string) (string, error) {
 	}
 }
 
+// FormatFromPath infers a format from a filesystem path.
 func FormatFromPath(path string) (string, error) {
 	ext := strings.TrimPrefix(filepath.Ext(path), ".")
 	if ext == "" {
@@ -116,6 +121,7 @@ func FormatFromPath(path string) (string, error) {
 	return ParseFormat(ext)
 }
 
+// SniffMediaType returns a MIME type from a magic-number prefix.
 func SniffMediaType(data []byte) string {
 	switch {
 	case len(data) >= 3 && data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff:
@@ -136,6 +142,7 @@ func SniffMediaType(data []byte) string {
 	}
 }
 
+// IsGIF reports whether data starts with GIF87a or GIF89a.
 func IsGIF(data []byte) bool {
 	return len(data) >= 6 && (string(data[:6]) == "GIF87a" || string(data[:6]) == "GIF89a")
 }

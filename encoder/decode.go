@@ -19,6 +19,7 @@ import (
 	"github.com/yunkeweb/go-image/internal/errs"
 )
 
+// ReadFile reads path and wraps I/O failures as ErrDecoder.
 func ReadFile(path string) ([]byte, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -27,6 +28,7 @@ func ReadFile(path string) ([]byte, error) {
 	return data, nil
 }
 
+// ReadAll drains r and wraps I/O failures as ErrDecoder.
 func ReadAll(r io.Reader) ([]byte, error) {
 	if r == nil {
 		return nil, errs.Wrap(errs.ErrDecoder, "nil reader")
@@ -38,6 +40,7 @@ func ReadAll(r io.Reader) ([]byte, error) {
 	return data, nil
 }
 
+// DecodeDataURIPayload extracts the payload of a data:image/... URI.
 func DecodeDataURIPayload(s string) ([]byte, error) {
 	comma := strings.Index(s, ",")
 	if comma < 0 {
@@ -65,6 +68,7 @@ func decodeBase64Flexible(s string) ([]byte, error) {
 	return base64.RawStdEncoding.DecodeString(s)
 }
 
+// DecodeGIF decodes an animated or still GIF.
 func DecodeGIF(data []byte) (*gif.GIF, error) {
 	g, err := gif.DecodeAll(bytes.NewReader(data))
 	if err != nil {
@@ -73,6 +77,7 @@ func DecodeGIF(data []byte) (*gif.GIF, error) {
 	return g, nil
 }
 
+// DecodeStill decodes a single-frame raster (JPEG, PNG, GIF, WebP, BMP, TIFF).
 func DecodeStill(data []byte) (image.Image, string, error) {
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
 	_ = cfg
@@ -93,6 +98,9 @@ func DecodeStill(data []byte) (image.Image, string, error) {
 	return im, format, err
 }
 
+// ParseJPEGExif reads Orientation from a JPEG APP1 Exif segment.
+// The returned map is nil when no valid Exif orientation is present.
+// The integer is always in 1..8 (1 when missing or invalid).
 func ParseJPEGExif(data []byte) (map[string]any, int) {
 	if len(data) < 4 || data[0] != 0xff || data[1] != 0xd8 {
 		return nil, 1
@@ -117,6 +125,9 @@ func ParseJPEGExif(data []byte) (map[string]any, int) {
 			seg := data[i+4 : i+2+size]
 			if bytes.HasPrefix(seg, []byte("Exif\x00\x00")) {
 				orient := readExifOrientation(seg[6:])
+				if orient < 1 || orient > 8 {
+					orient = 1
+				}
 				m := map[string]any{"Orientation": orient, "IFD0.Orientation": orient}
 				return m, orient
 			}
@@ -126,6 +137,10 @@ func ParseJPEGExif(data []byte) (map[string]any, int) {
 	return nil, 1
 }
 
+// readExifOrientation parses a TIFF IFD0 Orientation tag (0x0112).
+// The TIFF header must be II*\x00 or MM\x00*, the IFD offset and entry count
+// must lie inside the buffer, the tag type must be SHORT (3) with count 1,
+// and the value must be in 1..8. Any violation returns 1.
 func readExifOrientation(tiffData []byte) int {
 	if len(tiffData) < 8 {
 		return 1
@@ -156,18 +171,27 @@ func readExifOrientation(tiffData []byte) int {
 		return 1
 	}
 	n := u16(tiffData[ifd0 : ifd0+2])
+	if n < 0 {
+		return 1
+	}
+	entryBytes := n * 12
+	if ifd0+2+entryBytes > len(tiffData) {
+		return 1
+	}
 	off := ifd0 + 2
 	for i := 0; i < n; i++ {
-		if off+12 > len(tiffData) {
-			break
-		}
 		tag := u16(tiffData[off : off+2])
 		typ := u16(tiffData[off+2 : off+4])
+		count := u32(tiffData[off+4 : off+8])
 		if tag == 0x0112 {
-			if typ == 3 {
-				return u16(tiffData[off+8 : off+10])
+			if typ != 3 || count != 1 {
+				return 1
 			}
-			return u16(tiffData[off+8 : off+10])
+			orient := u16(tiffData[off+8 : off+10])
+			if orient < 1 || orient > 8 {
+				return 1
+			}
+			return orient
 		}
 		off += 12
 	}

@@ -49,7 +49,7 @@ func TestFloodFill(t *testing.T) {
 	img.DrawRectangle(0, 0, func(d *Drawable) {
 		d.Size(8, 8).SetBorder(1, "#000000")
 	})
-	img.Fill("#ff0000", 4, 4)
+	img.FloodFill(4, 4, "#ff0000")
 	c := img.PickColor(4, 4)
 	if c.R < 200 {
 		t.Fatalf("flood %+v", c)

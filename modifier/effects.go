@@ -10,6 +10,7 @@ import (
 	"github.com/yunkeweb/go-image/internal/pool"
 )
 
+// MapPixels applies fn to every pixel of n in place.
 func MapPixels(n *image.NRGBA, fn func(color.NRGBA) color.NRGBA) *image.NRGBA {
 	b := n.Bounds()
 	dst := pool.AcquireRect(b)
@@ -21,6 +22,7 @@ func MapPixels(n *image.NRGBA, fn func(color.NRGBA) color.NRGBA) *image.NRGBA {
 	return dst
 }
 
+// Greyscale converts n to luma and keeps alpha.
 func Greyscale(n *image.NRGBA) *image.NRGBA {
 	return MapPixels(n, func(c color.NRGBA) color.NRGBA {
 		y := uint8((int(c.R)*299 + int(c.G)*587 + int(c.B)*114) / 1000)
@@ -28,12 +30,14 @@ func Greyscale(n *image.NRGBA) *image.NRGBA {
 	})
 }
 
+// Invert inverts RGB channels and keeps alpha.
 func Invert(n *image.NRGBA) *image.NRGBA {
 	return MapPixels(n, func(c color.NRGBA) color.NRGBA {
 		return color.NRGBA{R: 255 - c.R, G: 255 - c.G, B: 255 - c.B, A: c.A}
 	})
 }
 
+// Brightness adjusts luma by level percent.
 func Brightness(n *image.NRGBA, level int) *image.NRGBA {
 	delta := int(math.Round(float64(level) * 2.55))
 	return MapPixels(n, func(c color.NRGBA) color.NRGBA {
@@ -46,6 +50,7 @@ func Brightness(n *image.NRGBA, level int) *image.NRGBA {
 	})
 }
 
+// Contrast adjusts contrast by level percent.
 func Contrast(n *image.NRGBA, level int) *image.NRGBA {
 	c := intcolor.ClampInt(level, -100, 100)
 	factor := (259.0 * (float64(c) + 255)) / (255 * (259 - float64(c)))
@@ -58,6 +63,7 @@ func Contrast(n *image.NRGBA, level int) *image.NRGBA {
 	})
 }
 
+// Gamma applies a gamma curve. Non-positive gamma is an error.
 func Gamma(n *image.NRGBA, gamma float64) (*image.NRGBA, error) {
 	if gamma <= 0 {
 		return nil, errs.Wrap(errs.ErrInput, "gamma must be > 0")
@@ -72,6 +78,7 @@ func Gamma(n *image.NRGBA, gamma float64) (*image.NRGBA, error) {
 	}), nil
 }
 
+// Colorize tints RGB channels by signed percent deltas.
 func Colorize(n *image.NRGBA, red, green, blue int) *image.NRGBA {
 	return MapPixels(n, func(c color.NRGBA) color.NRGBA {
 		return color.NRGBA{
@@ -83,6 +90,7 @@ func Colorize(n *image.NRGBA, red, green, blue int) *image.NRGBA {
 	})
 }
 
+// Pixelate mosaics n with square cells of the given size.
 func Pixelate(n *image.NRGBA, size int) *image.NRGBA {
 	if size < 1 {
 		size = 1
@@ -115,6 +123,7 @@ func Pixelate(n *image.NRGBA, size int) *image.NRGBA {
 	return dst
 }
 
+// Blur applies a box blur of the given radius.
 func Blur(n *image.NRGBA, amount int) *image.NRGBA {
 	if amount < 1 {
 		amount = 1
@@ -175,6 +184,7 @@ func convolve1D(src *image.NRGBA, k []float64, horizontal bool) *image.NRGBA {
 	return dst
 }
 
+// Sharpen applies an unsharp-mask of the given amount.
 func Sharpen(n *image.NRGBA, amount int) *image.NRGBA {
 	if amount < 0 {
 		amount = 0
@@ -220,12 +230,14 @@ func convolve3(src *image.NRGBA, k [3][3]float64) *image.NRGBA {
 	return dst
 }
 
+// BlendTransparency composites n over bg.
 func BlendTransparency(n *image.NRGBA, bg color.NRGBA) *image.NRGBA {
 	return MapPixels(n, func(c color.NRGBA) color.NRGBA {
 		return intcolor.OverNRGBA(bg, c)
 	})
 }
 
+// ReduceColors maps n onto pal.
 func ReduceColors(n *image.NRGBA, pal color.Palette) *image.NRGBA {
 	b := n.Bounds()
 	dst := pool.AcquireRect(b)

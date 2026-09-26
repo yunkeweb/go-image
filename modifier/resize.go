@@ -10,6 +10,7 @@ import (
 	"github.com/yunkeweb/go-image/internal/pool"
 )
 
+// Resample scales srcRect of src into a new dw×dh NRGBA.
 func Resample(src *image.NRGBA, srcRect image.Rectangle, dw, dh int) *image.NRGBA {
 	if dw < 1 {
 		dw = 1
@@ -22,6 +23,7 @@ func Resample(src *image.NRGBA, srcRect image.Rectangle, dw, dh int) *image.NRGB
 	return dst
 }
 
+// SizeOf returns the pixel size of n.
 func SizeOf(n *image.NRGBA) Size {
 	if n == nil {
 		return Size{}
@@ -30,6 +32,7 @@ func SizeOf(n *image.NRGBA) Size {
 	return Size{Width: b.Dx(), Height: b.Dy()}
 }
 
+// CoverSizes computes the crop box and target size for a cover fit.
 func CoverSizes(imagesize Size, width, height int, pos string, _ bool) (crop Size, resizeTo Size, err error) {
 	r, err := NewResizer(width, height)
 	if err != nil {
@@ -49,6 +52,7 @@ func CoverSizes(imagesize Size, width, height int, pos string, _ bool) (crop Siz
 	return crop, resizeTo, nil
 }
 
+// ApplyCover crops n to crop and resamples to resizeTo.
 func ApplyCover(n *image.NRGBA, crop, resizeTo Size) *image.NRGBA {
 	px, py := crop.Pivot.X, crop.Pivot.Y
 	cw, ch := crop.Width, crop.Height
@@ -57,6 +61,7 @@ func ApplyCover(n *image.NRGBA, crop, resizeTo Size) *image.NRGBA {
 	return Resample(n, sr, resizeTo.Width, resizeTo.Height)
 }
 
+// PlaceOnCanvas draws n onto a width×height canvas filled with bg.
 func PlaceOnCanvas(n *image.NRGBA, width, height int, crop Size, bg color.NRGBA) *image.NRGBA {
 	scaled := Resample(n, n.Bounds(), crop.Width, crop.Height)
 	dst := pool.Blank(width, height, bg)
@@ -68,6 +73,7 @@ func PlaceOnCanvas(n *image.NRGBA, width, height int, crop Size, bg color.NRGBA)
 	return dst
 }
 
+// Crop extracts width×height from n using anchor and optional offset.
 func Crop(n *image.NRGBA, width, height int, anchor string, bg color.NRGBA, ox, oy int) (*image.NRGBA, error) {
 	if width < 1 || height < 1 {
 		return nil, invalidDimensions()
@@ -84,6 +90,7 @@ func Crop(n *image.NRGBA, width, height int, anchor string, bg color.NRGBA, ox, 
 	return dst, nil
 }
 
+// ResizeCanvas changes the canvas size without scaling pixels.
 func ResizeCanvas(n *image.NRGBA, width, height int, anchor string, bg color.NRGBA) (*image.NRGBA, error) {
 	if width < 1 || height < 1 {
 		return nil, invalidDimensions()
@@ -97,6 +104,7 @@ func ResizeCanvas(n *image.NRGBA, width, height int, anchor string, bg color.NRG
 	return dst, nil
 }
 
+// Trim crops uniform border pixels within tolerance.
 func Trim(n *image.NRGBA, tolerance int) *image.NRGBA {
 	b := n.Bounds()
 	ref := averageCorners(n)

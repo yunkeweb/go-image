@@ -150,10 +150,10 @@ func TestParseFormatAliases(t *testing.T) {
 }
 
 func TestDefaultConfigAndWithConfig(t *testing.T) {
-	if !DefaultConfig.AutoOrientation || !DefaultConfig.DecodeAnimation {
+	if !DefaultConfig().AutoOrientation || !DefaultConfig().DecodeAnimation {
 		t.Fatal("package defaults")
 	}
-	cfg := DefaultConfig
+	cfg := DefaultConfig()
 	cfg.AutoOrientation = false
 	cfg.DecodeAnimation = false
 	cfg.BlendingColor = "red"

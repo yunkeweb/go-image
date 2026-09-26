@@ -24,6 +24,10 @@
 //
 // # Concurrency
 //
+// Image implements image.Image using the first frame as the static view.
+// Frames, Native, Exif, and Profile return copies; use the Unsafe* methods
+// only when the caller will not mutate the result.
+//
 // An Image value is not safe for concurrent mutation. Independent images may
 // be processed in parallel. When several goroutines must work from the same
 // source, clone first:

@@ -4,9 +4,17 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+
+	"github.com/yunkeweb/go-image/internal/pool"
 )
 
+const maxGIFColors = 256
+
+// QuantizePaletted copies src into a paletted image using MedianCutPalette.
 func QuantizePaletted(src *image.NRGBA, limit int) *image.Paletted {
+	if src == nil {
+		return image.NewPaletted(image.Rect(0, 0, 1, 1), color.Palette{color.NRGBA{A: 0}})
+	}
 	b := src.Bounds()
 	pal := MedianCutPalette(src, limit)
 	p := image.NewPaletted(b, pal)
@@ -14,16 +22,33 @@ func QuantizePaletted(src *image.NRGBA, limit int) *image.Paletted {
 	return p
 }
 
+// MedianCutPalette builds a GIF-safe palette of at most 256 colors.
+// A transparent slot is reserved only when src contains a pixel with A < 255.
 func MedianCutPalette(src *image.NRGBA, limit int) color.Palette {
-	if limit < 2 {
-		limit = 2
+	if limit < 1 {
+		limit = 1
 	}
+	if limit > maxGIFColors {
+		limit = maxGIFColors
+	}
+	if src == nil {
+		return color.Palette{color.NRGBA{A: 0}}
+	}
+	hasTransparent := pool.HasTransparency(src)
+	colorLimit := limit
+	if hasTransparent && colorLimit > 1 {
+		colorLimit--
+	}
+
 	b := src.Bounds()
 	type pix struct{ r, g, bl, a uint8 }
 	seen := map[uint32]pix{}
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
 			c := src.NRGBAAt(x, y)
+			if hasTransparent && c.A == 0 {
+				continue
+			}
 			key := uint32(c.R)<<24 | uint32(c.G)<<16 | uint32(c.B)<<8 | uint32(c.A)
 			if _, ok := seen[key]; !ok {
 				seen[key] = pix{c.R, c.G, c.B, c.A}
@@ -37,16 +62,30 @@ func MedianCutPalette(src *image.NRGBA, limit int) color.Palette {
 	if len(pts) == 0 {
 		return color.Palette{color.NRGBA{A: 0}}
 	}
-	if len(pts) <= limit {
-		pal := make(color.Palette, 0, len(pts)+1)
-		pal = append(pal, color.NRGBA{A: 0})
-		for _, p := range pts {
+
+	build := func(colors []pix) color.Palette {
+		pal := make(color.Palette, 0, len(colors)+1)
+		if hasTransparent {
+			pal = append(pal, color.NRGBA{A: 0})
+		}
+		for _, p := range colors {
 			pal = append(pal, color.NRGBA{R: p.r, G: p.g, B: p.bl, A: p.a})
+		}
+		if len(pal) > maxGIFColors {
+			pal = pal[:maxGIFColors]
+		}
+		if len(pal) == 0 {
+			return color.Palette{color.NRGBA{A: 0}}
 		}
 		return pal
 	}
+
+	if len(pts) <= colorLimit {
+		return build(pts)
+	}
+
 	boxes := [][]pix{pts}
-	for len(boxes) < limit {
+	for len(boxes) < colorLimit {
 		bi, channel, spread := -1, 0, 0
 		for i, box := range boxes {
 			if len(box) < 2 {
@@ -115,7 +154,8 @@ func MedianCutPalette(src *image.NRGBA, limit int) color.Palette {
 		boxes[bi] = left
 		boxes = append(boxes, right)
 	}
-	pal := color.Palette{color.NRGBA{A: 0}}
+
+	reduced := make([]pix, 0, len(boxes))
 	for _, box := range boxes {
 		var r, g, bl, a, n int
 		for _, p := range box {
@@ -128,7 +168,7 @@ func MedianCutPalette(src *image.NRGBA, limit int) color.Palette {
 		if n == 0 {
 			continue
 		}
-		pal = append(pal, color.NRGBA{R: uint8(r / n), G: uint8(g / n), B: uint8(bl / n), A: uint8(a / n)})
+		reduced = append(reduced, pix{uint8(r / n), uint8(g / n), uint8(bl / n), uint8(a / n)})
 	}
-	return pal
+	return build(reduced)
 }

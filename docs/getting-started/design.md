@@ -10,11 +10,13 @@ canvas := goimage.New(800, 600)
 raw := goimage.Decode(reader)
 ```
 
-Shared decode settings live in `Config`. Copy `DefaultConfig` (or build a `Config` value) and pass `WithConfig` into `Open` / `Decode` / `New` / `Animate`.
+Shared decode settings live in `Config`. Call `DefaultConfig()` (or build a `Config` value) and pass `WithConfig` into `Open` / `Decode` / `New` / `Animate`. `DefaultConfig` is a function that returns a copy; the package default is immutable.
+
+`Fill(c)` paints the whole canvas. Flood fill is `FloodFill(x, y, c)`. `Frame.Image()` returns an independent copy of frame pixels.
 
 ## Functional options
 
-`opts ...Option` works on `Open`, `Decode`, `DecodeBytes`, `FromImage`, `New`, and `Animate`. Each call copies `DefaultConfig` and applies the functions. Concurrent callers never share mutable global state.
+`opts ...Option` works on `Open`, `Decode`, `DecodeBytes`, `FromImage`, `New`, and `Animate`. Each call copies `DefaultConfig()` and applies the functions. Concurrent callers never share mutable global state.
 
 Geometry helpers (`Cover`, `Contain`, `Pad`, `Crop`, `Fit`, `ResizeCanvas`) take `...GeometryOption`:
 

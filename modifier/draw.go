@@ -9,6 +9,7 @@ import (
 	"github.com/yunkeweb/go-image/internal/pool"
 )
 
+// DrawPixel sets (x, y) on a clone of n.
 func DrawPixel(n *image.NRGBA, x, y int, c color.NRGBA) *image.NRGBA {
 	dst := pool.Clone(n)
 	b := dst.Bounds()
@@ -18,18 +19,21 @@ func DrawPixel(n *image.NRGBA, x, y int, c color.NRGBA) *image.NRGBA {
 	return dst
 }
 
+// Fill paints every pixel of n with c.
 func Fill(n *image.NRGBA, c color.NRGBA) *image.NRGBA {
 	dst := pool.Clone(n)
 	pool.FillRect(dst, dst.Bounds(), c)
 	return dst
 }
 
+// FloodFill replaces the 4-connected region of equal color at (x, y).
 func FloodFill(n *image.NRGBA, x, y int, c color.NRGBA) *image.NRGBA {
 	dst := pool.Clone(n)
 	floodFill(dst, x, y, c)
 	return dst
 }
 
+// DrawRectangle paints a filled and/or stroked rectangle onto a clone of n.
 func DrawRectangle(n *image.NRGBA, x, y, w, h int, bg *color.NRGBA, borderSize int, border *color.NRGBA) *image.NRGBA {
 	dst := pool.Clone(n)
 	if w < 1 {
@@ -48,6 +52,7 @@ func DrawRectangle(n *image.NRGBA, x, y, w, h int, bg *color.NRGBA, borderSize i
 	return dst
 }
 
+// DrawEllipse paints a filled and/or stroked ellipse onto a clone of n.
 func DrawEllipse(n *image.NRGBA, cx, cy, rx, ry int, bg *color.NRGBA, borderSize int, border *color.NRGBA) *image.NRGBA {
 	dst := pool.Clone(n)
 	if bg != nil {
@@ -61,6 +66,7 @@ func DrawEllipse(n *image.NRGBA, cx, cy, rx, ry int, bg *color.NRGBA, borderSize
 	return dst
 }
 
+// DrawPolygon paints a filled and/or stroked polygon onto a clone of n.
 func DrawPolygon(n *image.NRGBA, pts []Point, bg *color.NRGBA, borderSize int, border *color.NRGBA) *image.NRGBA {
 	dst := pool.Clone(n)
 	if bg != nil {
@@ -76,6 +82,7 @@ func DrawPolygon(n *image.NRGBA, pts []Point, bg *color.NRGBA, borderSize int, b
 	return dst
 }
 
+// DrawLine paints a stroke of width pixels onto a clone of n.
 func DrawLine(n *image.NRGBA, x1, y1, x2, y2, width int, c color.NRGBA) *image.NRGBA {
 	dst := pool.Clone(n)
 	if width < 1 {
@@ -85,6 +92,7 @@ func DrawLine(n *image.NRGBA, x1, y1, x2, y2, width int, c color.NRGBA) *image.N
 	return dst
 }
 
+// DrawBezier paints a polyline through pts onto a clone of n.
 func DrawBezier(n *image.NRGBA, pts []Point, width int, c color.NRGBA) *image.NRGBA {
 	dst := pool.Clone(n)
 	if len(pts) < 2 {

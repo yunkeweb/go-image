@@ -3,6 +3,8 @@ package goimage
 import "strings"
 
 // Config holds decode and encode defaults for a single Open/Decode/New/Animate call.
+// Values are copied into each Image; mutating a Config after the call does not
+// affect in-flight images. Config itself is safe to copy across goroutines.
 type Config struct {
 	AutoOrientation bool
 	DecodeAnimation bool
@@ -10,30 +12,40 @@ type Config struct {
 	Strip           bool
 }
 
-// DefaultConfig is copied at the start of every package-level entry point.
-// Mutate a copy and pass it with WithConfig when many calls share one setup.
-var DefaultConfig = Config{
+var defaultConfig = Config{
 	AutoOrientation: true,
 	DecodeAnimation: true,
 	BlendingColor:   "ffffff",
 	Strip:           false,
 }
 
-// Option is a functional option applied to Config.
+// DefaultConfig returns a copy of the package decode defaults.
+// AutoOrientation and DecodeAnimation are true; BlendingColor is "ffffff".
+// Callers mutate the returned value and pass it with WithConfig; the package
+// default itself is immutable and safe for concurrent New/Open/Decode.
+func DefaultConfig() Config {
+	return defaultConfig
+}
+
+// Option is a functional option applied to a copy of DefaultConfig.
 type Option func(*Config)
 
+// WithAutoOrientation enables or disables JPEG EXIF orientation correction.
 func WithAutoOrientation(v bool) Option {
 	return func(c *Config) { c.AutoOrientation = v }
 }
 
+// WithDecodeAnimation enables or disables multi-frame GIF compositing.
 func WithDecodeAnimation(v bool) Option {
 	return func(c *Config) { c.DecodeAnimation = v }
 }
 
+// WithBlendingColor sets the color used when flattening transparency for JPEG/BMP.
 func WithBlendingColor(color any) Option {
 	return func(c *Config) { c.BlendingColor = color }
 }
 
+// WithStrip drops ICC profile bytes before encoding when true.
 func WithStrip(v bool) Option {
 	return func(c *Config) { c.Strip = v }
 }
@@ -89,6 +101,8 @@ func applyGeometryOptions(base geometrySettings, opts []GeometryOption) geometry
 }
 
 // EncodeOptions controls format-specific encoding.
+// Quality defaults to 80 when zero. Callers pass at most one EncodeOptions
+// value; extra values are an error rather than silently ignored.
 type EncodeOptions struct {
 	Quality     int  // JPEG/WebP 0–100; default 80
 	Progressive bool // JPEG (best-effort; stdlib writes baseline)
@@ -108,7 +122,7 @@ func (o EncodeOptions) qualityOrDefault() int {
 }
 
 func applyOptions(opts []Option) Config {
-	cfg := DefaultConfig
+	cfg := DefaultConfig()
 	for _, o := range opts {
 		if o != nil {
 			o(&cfg)

@@ -8,6 +8,7 @@ import (
 	"github.com/yunkeweb/go-image/internal/pool"
 )
 
+// Place overlays overlay onto dst at position with 0–100 opacity.
 func Place(dst, overlay *image.NRGBA, position string, offsetX, offsetY, opacity int) *image.NRGBA {
 	if overlay == nil {
 		return pool.Clone(dst)
@@ -31,6 +32,7 @@ func Place(dst, overlay *image.NRGBA, position string, offsetX, offsetY, opacity
 	return out
 }
 
+// PlacePosition returns the top-left of a watermark of size wm on imageSize.
 func PlacePosition(imageSize, wm Size, position string, ox, oy int) Point {
 	img := imageSize.MovePivot(position, ox, oy)
 	mark := wm.MovePivot(position, 0, 0)

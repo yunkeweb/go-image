@@ -17,6 +17,7 @@ import (
 	"github.com/yunkeweb/go-image/internal/pool"
 )
 
+// TextStyle describes a DrawText call.
 type TextStyle struct {
 	Filename    string
 	Size        float64
@@ -30,6 +31,7 @@ type TextStyle struct {
 	WrapWidth   int
 }
 
+// DrawText paints text onto a clone of n.
 func DrawText(n *image.NRGBA, text string, x, y int, style TextStyle) (*image.NRGBA, error) {
 	face, closer, err := LoadFace(style.Filename, style.Size)
 	if err != nil {
@@ -72,6 +74,7 @@ func DrawText(n *image.NRGBA, text string, x, y int, style TextStyle) (*image.NR
 	return dst, nil
 }
 
+// LoadFace opens a TTF/OTF file, or returns basicfont when filename is empty.
 func LoadFace(filename string, size float64) (font.Face, func(), error) {
 	if filename != "" {
 		st, err := os.Stat(filename)
@@ -105,6 +108,7 @@ func LoadFace(filename string, size float64) (font.Face, func(), error) {
 	return basicfont.Face7x13, nil, nil
 }
 
+// WrapText splits text into lines that fit maxWidth according to measure.
 func WrapText(text string, maxWidth int, measure func(string) int) []string {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	raw := strings.Split(text, "\n")

@@ -1,6 +1,6 @@
 # Fill
 
-`Fill` without extra coordinates paints the entire canvas. Two extra ints run a flood fill from that seed, replacing the connected region of equal color.
+`Fill` paints every pixel of every frame. `FloodFill` replaces the 4-connected region of equal color starting at a seed.
 
 ## Overview
 
@@ -9,7 +9,8 @@ Whole-canvas fill is the usual way to paint `New` canvases. Flood fill walks 4-c
 ## Signature
 
 ```go
-func (img *Image) Fill(col any, xy ...int) *Image
+func (img *Image) Fill(col any) *Image
+func (img *Image) FloodFill(x, y int, col any) *Image
 ```
 
 ## Parameters
@@ -17,7 +18,7 @@ func (img *Image) Fill(col any, xy ...int) *Image
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
 | `col` | `any` | required | Fill color |
-| `xy` | `...int` | omitted = whole canvas | When `len >= 2`, flood-fill from `(xy[0], xy[1])` |
+| `x`, `y` | `int` | required for FloodFill | Seed pixel |
 
 ## Example: package-level canvas fill
 
@@ -53,7 +54,7 @@ import (
 )
 
 func main() {
-	img := goimage.Open("mask.png").Fill("#22c55e", 10, 10)
+	img := goimage.Open("mask.png").FloodFill(10, 10, "#22c55e")
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}
@@ -67,3 +68,4 @@ func main() {
 
 - Flood fill stops at any color difference, including anti-aliased edges.
 - Invalid `col` sets `ErrColor` and skips the paint.
+- `Fill(c, x, y)` is no longer a flood-fill overload; use `FloodFill`.

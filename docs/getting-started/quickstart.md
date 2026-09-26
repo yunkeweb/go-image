@@ -84,7 +84,7 @@ img := goimage.Open("input.png",
 Reuse one config across many files with `WithConfig`:
 
 ```go
-cfg := goimage.DefaultConfig
+cfg := goimage.DefaultConfig()
 cfg.DecodeAnimation = false // stills only
 thumb := goimage.Open("photo.jpg", goimage.WithConfig(cfg)).Cover(200, 200)
 ```

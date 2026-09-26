@@ -100,10 +100,10 @@ func TestOrientateResetsExifAndPixels(t *testing.T) {
 	if img.Err() != nil {
 		t.Fatal(img.Err())
 	}
-	if v, _ := img.ExifQuery("Orientation").(int); v != 1 {
+	if img.ExifQuery("Orientation") != nil {
 		t.Fatalf("orientation %v", img.ExifQuery("Orientation"))
 	}
-	if v, _ := img.ExifQuery("IFD0.Orientation").(int); v != 1 {
+	if _, ok := img.Exif()["IFD0.Orientation"]; ok {
 		t.Fatalf("IFD0.Orientation %v", img.ExifQuery("IFD0.Orientation"))
 	}
 	assertNRGBA(t, img.PickColor(1, 0), 0, 255, 0, 255)
@@ -187,8 +187,9 @@ func TestGIFResizeResetsDisposalAndRect(t *testing.T) {
 		if f.Dispose != want {
 			t.Fatalf("frame %d dispose %d want %d", i, f.Dispose, want)
 		}
-		if f.Img.Rect.Min.X != 0 || f.Img.Rect.Min.Y != 0 {
-			t.Fatalf("frame %d rect min %v", i, f.Img.Rect.Min)
+		nimg := f.Image().(*image.NRGBA)
+		if nimg.Rect.Min.X != 0 || nimg.Rect.Min.Y != 0 {
+			t.Fatalf("frame %d rect min %v", i, nimg.Rect.Min)
 		}
 	}
 	enc := resized.ToGIF()
@@ -302,8 +303,8 @@ func TestGIFPartialFrameResetsDisposal(t *testing.T) {
 	})
 	anim.frames[1].OffsetLeft = 2
 	anim.frames[1].OffsetTop = 2
-	anim.frames[1].Img = pool.Acquire(4, 4)
-	pool.FillRect(anim.frames[1].Img, anim.frames[1].Img.Bounds(), Color{G: 255, A: 255}.NRGBA())
+	anim.frames[1].img = pool.Acquire(4, 4)
+	pool.FillRect(anim.frames[1].img, anim.frames[1].img.Bounds(), Color{G: 255, A: 255}.NRGBA())
 	anim.resetGIFFrameLayout()
 	if anim.frames[1].OffsetLeft != 0 || anim.frames[1].OffsetTop != 0 {
 		t.Fatalf("partial offset %d,%d", anim.frames[1].OffsetLeft, anim.frames[1].OffsetTop)

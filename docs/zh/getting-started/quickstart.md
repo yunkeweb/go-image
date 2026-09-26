@@ -84,7 +84,7 @@ img := goimage.Open("input.png",
 多文件共用一份配置时用 `WithConfig`：
 
 ```go
-cfg := goimage.DefaultConfig
+cfg := goimage.DefaultConfig()
 cfg.DecodeAnimation = false // 只要静态首帧
 thumb := goimage.Open("photo.jpg", goimage.WithConfig(cfg)).Cover(200, 200)
 ```

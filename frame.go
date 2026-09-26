@@ -32,12 +32,12 @@ func (f Frame) clone() Frame {
 	return out
 }
 
+// asNRGBA copies src into a library-owned NRGBA buffer with draw.Draw.
+// JPEG YCbCr, Paletted, RGBA, NRGBA, and other image.Image values never
+// share the caller's Pix slice and never panic on a concrete type assertion.
 func asNRGBA(src image.Image) *image.NRGBA {
 	if src == nil {
 		return nil
-	}
-	if n, ok := src.(*image.NRGBA); ok {
-		return n
 	}
 	b := src.Bounds()
 	dst := acquireNRGBA(b.Dx(), b.Dy())

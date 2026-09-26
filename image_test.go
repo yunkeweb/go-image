@@ -121,11 +121,85 @@ func TestCloneIndependence(t *testing.T) {
 	}
 }
 
+func TestCloneNil(t *testing.T) {
+	var img *Image
+	cp := img.Clone()
+	if cp.Err() == nil {
+		t.Fatal("expected error on nil Clone")
+	}
+}
+
+func TestFromImageOwnedBuffer(t *testing.T) {
+	ycbcr := image.NewYCbCr(image.Rect(0, 0, 8, 8), image.YCbCrSubsampleRatio420)
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			ycbcr.Y[ycbcr.YOffset(x, y)] = 255
+			ycbcr.Cb[ycbcr.COffset(x, y)] = 128
+			ycbcr.Cr[ycbcr.COffset(x, y)] = 128
+		}
+	}
+	fromY := FromImage(ycbcr)
+	if fromY.Err() != nil {
+		t.Fatal(fromY.Err())
+	}
+	c := fromY.PickColor(0, 0)
+	if c.R < 250 || c.G < 250 || c.B < 250 || c.A != 255 {
+		t.Fatalf("YCbCr white got %+v", c)
+	}
+	ycbcr.Y[ycbcr.YOffset(0, 0)] = 0
+	if fromY.PickColor(0, 0).R < 250 {
+		t.Fatal("FromImage shared YCbCr buffer")
+	}
+
+	n := image.NewNRGBA(image.Rect(0, 0, 4, 4))
+	n.SetNRGBA(0, 0, color.NRGBA{R: 10, G: 20, B: 30, A: 255})
+	fromN := FromImage(n)
+	n.SetNRGBA(0, 0, color.NRGBA{R: 99, A: 255})
+	if fromN.PickColor(0, 0).R != 10 {
+		t.Fatal("FromImage shared NRGBA Pix")
+	}
+
+	rgba := image.NewRGBA(image.Rect(0, 0, 2, 2))
+	rgba.SetRGBA(0, 0, color.RGBA{B: 200, A: 255})
+	fromR := FromImage(rgba)
+	if fromR.Err() != nil {
+		t.Fatal(fromR.Err())
+	}
+	if fromR.PickColor(0, 0).B < 190 {
+		t.Fatalf("RGBA %+v", fromR.PickColor(0, 0))
+	}
+	rgba.SetRGBA(0, 0, color.RGBA{R: 1, A: 255})
+	if fromR.PickColor(0, 0).B < 190 {
+		t.Fatal("FromImage shared RGBA Pix")
+	}
+}
+
 func TestEncodedDataURI(t *testing.T) {
 	enc := solid(1, 1, ColorBlack).ToPNG()
 	uri := enc.ToDataURI()
 	if !bytes.HasPrefix([]byte(uri), []byte("data:image/png;base64,")) {
 		t.Fatalf("uri %s", uri)
+	}
+}
+
+func TestEncodedWriteTo(t *testing.T) {
+	enc := solid(2, 2, Color{R: 1, G: 2, B: 3, A: 255}).ToPNG()
+	if enc.Err() != nil {
+		t.Fatal(enc.Err())
+	}
+	var buf bytes.Buffer
+	n, err := enc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != int64(len(enc.Data)) || !bytes.Equal(buf.Bytes(), enc.Data) {
+		t.Fatalf("n=%d len=%d", n, len(enc.Data))
+	}
+	if _, err := encodedErr(ErrNotSupported).WriteTo(&buf); err == nil {
+		t.Fatal("expected delayed encode error")
+	}
+	if _, err := enc.WriteTo(nil); err == nil {
+		t.Fatal("expected nil writer error")
 	}
 }
 

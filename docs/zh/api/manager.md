@@ -46,6 +46,7 @@ func WithStrip(v bool) Option
 | `path` | `string` | `Open` 的文件系统路径 |
 | `r` | `io.Reader` | `Decode` 的编码字节流 |
 | `data` | `[]byte` | `DecodeBytes` 的编码字节 |
+| `src` | `image.Image` | 经 `draw.Draw` 拷贝到库自有的 NRGBA 缓冲 |
 
 | 选项 | 默认 | 含义 |
 |------|------|------|

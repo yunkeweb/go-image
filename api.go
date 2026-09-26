@@ -53,7 +53,9 @@ func DecodeDataURI(uri string, opts ...Option) *Image {
 	return result(decodeDataURI(uri, applyOptions(opts)))
 }
 
-// FromImage wraps a standard-library image.Image as an *Image.
+// FromImage copies src into a library-owned NRGBA buffer with draw.Draw.
+// YCbCr, Paletted, RGBA, NRGBA, and other image.Image values are safe: the
+// original Pix slice is never retained.
 func FromImage(src image.Image, opts ...Option) *Image {
 	return result(fromStdImage(src, applyOptions(opts)))
 }

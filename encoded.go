@@ -2,6 +2,7 @@ package goimage
 
 import (
 	"encoding/base64"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -26,6 +27,19 @@ func (e EncodedImage) ToDataURI() string {
 }
 
 func (e EncodedImage) String() string { return string(e.Data) }
+
+// WriteTo writes the encoded bytes to w. It implements io.WriterTo so HTTP
+// handlers can stream with img.ToJPEG().WriteTo(w).
+func (e EncodedImage) WriteTo(w io.Writer) (int64, error) {
+	if e.err != nil {
+		return 0, e.err
+	}
+	if w == nil {
+		return 0, wrap(ErrEncoder, "nil writer")
+	}
+	n, err := w.Write(e.Data)
+	return int64(n), err
+}
 
 func (e EncodedImage) Save(path string) error {
 	if e.err != nil {

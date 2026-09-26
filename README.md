@@ -46,7 +46,8 @@ Requires Go 1.22+.
 - **Draw**: pixel, rectangle, ellipse, circle, polygon, line, bezier, flood fill
 - **Place** watermarks with 9-point alignment and opacity
 - **Text** with TTF/OTF files or the built-in bitmap face
-- **Encode** JPEG, PNG, GIF (including animation), WebP (lossless VP8L), BMP, TIFF
+- **Encode** JPEG, PNG, GIF (including animation), WebP (lossless VP8L), BMP, TIFF; `WriteTo` for HTTP
+- **Clone** deep-copies pixels for concurrent pipelines (`Image` is not concurrent-safe)
 - **sync.Pool** for NRGBA buffers, with a 16 MiB put cap for large images
 
 ## Package-level API
@@ -97,7 +98,13 @@ if err := img.Err(); err != nil {
 }
 ```
 
-Encode helpers return `EncodedImage`. Check `enc.Err()` or the error from `Save`.
+Encode helpers return `EncodedImage`. Check `enc.Err()` or the error from `Save` / `WriteTo`. An `Image` is not safe for concurrent mutation; `Clone()` before sharing one source across goroutines.
+
+```go
+enc := img.ToJPEG(85)
+w.Header().Set("Content-Type", enc.MimeType())
+_, _ = enc.WriteTo(w) // http.ResponseWriter, Gin, or any io.Writer
+```
 
 ## Formats
 

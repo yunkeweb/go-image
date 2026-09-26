@@ -32,7 +32,20 @@ func (e EncodedImage) Bytes() []byte
 func (e EncodedImage) MimeType() string
 func (e EncodedImage) Size() int
 func (e EncodedImage) ToDataURI() string
+func (e EncodedImage) WriteTo(w io.Writer) (int64, error)
 func (e EncodedImage) Save(path string) error
+```
+
+`WriteTo` implements `io.WriterTo`. Stream from an HTTP handler:
+
+```go
+enc := img.ToJPEG(85)
+if enc.Err() != nil {
+    http.Error(w, enc.Err().Error(), http.StatusInternalServerError)
+    return
+}
+w.Header().Set("Content-Type", enc.MimeType())
+_, _ = enc.WriteTo(w)
 ```
 
 ## EncodeOptions

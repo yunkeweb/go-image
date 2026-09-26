@@ -32,7 +32,7 @@ Go 没有函数重载。入口按类型命名：
 
 ## 延迟错误与 goroutine
 
-链式调用返回 `*Image`，第一次错误留在该对象上。可并行处理互不相关的文件：
+链式调用返回 `*Image`，第一次错误留在该对象上。**单个 `Image` 实例非并发安全**。并行处理互不相关的文件，或在共享同一来源前先 `Clone()`：
 
 ```go
 var wg sync.WaitGroup
@@ -49,7 +49,13 @@ for _, path := range paths {
     }()
 }
 wg.Wait()
+
+base := goimage.Open("photo.jpg")
+go func() { _ = base.Clone().Cover(400, 300, "center").ToJPEG().Save("a.jpg") }()
+go func() { _ = base.Clone().Greyscale().ToPNG().Save("b.png") }()
 ```
+
+`FromImage` 与解码路径一律通过 `draw.Draw` 拷贝到库自有的 NRGBA 缓冲。JPEG 的 YCbCr、调色板图、RGBA、NRGBA 都不会因类型断言 Panic，也不会共享调用方的 `Pix`。
 
 抛弃的 NRGBA 缓冲在容量不超过 16 MiB 时回到 `sync.Pool`，避免大图把超大 slice 长期留在池中。
 

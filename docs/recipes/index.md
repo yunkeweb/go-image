@@ -82,6 +82,25 @@ if err := anim.ToGIF().Save("dot.gif"); err != nil {
 }
 ```
 
+## Stream JPEG from an HTTP handler
+
+```go
+func thumbnail(w http.ResponseWriter, r *http.Request) {
+	img := goimage.Open("photo.jpg").Cover(400, 300, "center")
+	if err := img.Err(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	enc := img.ToJPEG(85)
+	if enc.Err() != nil {
+		http.Error(w, enc.Err().Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", enc.MimeType())
+	_, _ = enc.WriteTo(w)
+}
+```
+
 ## Rotate and flatten for JPEG
 
 ```go

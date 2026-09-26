@@ -6,7 +6,7 @@
 go get github.com/yunkeweb/go-image
 ```
 
-需要 **Go 1.22+**。额外依赖只有官方 `golang.org/x/image`。
+需要 **Go 1.22+**。额外依赖只有官方 `golang.org/x/image`。`EncodedImage.WriteTo` 可写入任意 `io.Writer`（含 HTTP Handler）。单个 `Image` 实例非并发安全，请先 `Clone()`。
 
 ## 第一次编码
 

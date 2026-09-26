@@ -14,8 +14,8 @@ hero:
 features:
   - title: Idiomatic Go
     details: Open, Decode, and New at package level. Functional options on every entry point. Strong types instead of any.
-  - title: Concurrent by default
-    details: Each *Image owns its pixels and delayed error. sync.Pool recycles NRGBA buffers up to 16 MiB.
+  - title: Owned buffers
+    details: Decode and FromImage copy into NRGBA via draw.Draw. Clone for concurrent work. WriteTo streams to any io.Writer.
   - title: Encode without CGO
     details: JPEG, PNG, GIF (including animation), lossless WebP, BMP, and TIFF.
 ---

@@ -46,6 +46,7 @@ func WithStrip(v bool) Option
 | `path` | `string` | Filesystem path for `Open` |
 | `r` | `io.Reader` | Encoded image bytes for `Decode` |
 | `data` | `[]byte` | Encoded image bytes for `DecodeBytes` |
+| `src` | `image.Image` | Copied into an owned NRGBA buffer with `draw.Draw` |
 
 | Option | Default | Meaning |
 |--------|---------|---------|

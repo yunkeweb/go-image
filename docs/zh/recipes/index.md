@@ -82,6 +82,25 @@ if err := anim.ToGIF().Save("dot.gif"); err != nil {
 }
 ```
 
+## 在 HTTP Handler 中流式输出 JPEG
+
+```go
+func thumbnail(w http.ResponseWriter, r *http.Request) {
+	img := goimage.Open("photo.jpg").Cover(400, 300, "center")
+	if err := img.Err(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	enc := img.ToJPEG(85)
+	if enc.Err() != nil {
+		http.Error(w, enc.Err().Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", enc.MimeType())
+	_, _ = enc.WriteTo(w)
+}
+```
+
 ## 旋转并压平后输出 JPEG
 
 ```go

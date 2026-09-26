@@ -46,7 +46,8 @@ go get github.com/yunkeweb/go-image
 - **绘制**：像素、矩形、椭圆、圆、多边形、直线、贝塞尔、洪水填充
 - **Place** 水印：九点对齐与透明度
 - **文字**：TTF/OTF 文件或内置点阵字体
-- **编码**：JPEG、PNG、GIF（含动画）、WebP（无损 VP8L）、BMP、TIFF
+- **编码**：JPEG、PNG、GIF（含动画）、WebP（无损 VP8L）、BMP、TIFF；`WriteTo` 可直写 HTTP
+- **Clone** 深拷贝像素，供并发流水线使用（`Image` 非并发安全）
 - **sync.Pool** 回收 NRGBA 缓冲区，超过 16 MiB 的大图不回池
 
 ## 包级 API
@@ -97,7 +98,13 @@ if err := img.Err(); err != nil {
 }
 ```
 
-编码方法返回 `EncodedImage`。请检查 `enc.Err()` 或 `Save` 返回的 `error`。
+编码方法返回 `EncodedImage`。请检查 `enc.Err()` 或 `Save` / `WriteTo` 返回的 `error`。单个 `Image` 实例非并发安全；跨 goroutine 共享同一来源前先 `Clone()`。
+
+```go
+enc := img.ToJPEG(85)
+w.Header().Set("Content-Type", enc.MimeType())
+_, _ = enc.WriteTo(w) // http.ResponseWriter、Gin 或任意 io.Writer
+```
 
 ## 格式
 

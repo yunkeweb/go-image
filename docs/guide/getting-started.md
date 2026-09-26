@@ -6,7 +6,7 @@
 go get github.com/yunkeweb/go-image
 ```
 
-Requires **Go 1.22+**. The only extra module is official `golang.org/x/image`.
+Requires **Go 1.22+**. The only extra module is official `golang.org/x/image`. `EncodedImage.WriteTo` streams to any `io.Writer` (HTTP handlers included). An `Image` is not safe for concurrent mutation; call `Clone()` first.
 
 ## First encode
 

@@ -10,6 +10,10 @@ import (
 // Image is the fluent image object. Methods mutate the receiver and return it
 // so callers can chain operations. The first failure is stored and retrieved
 // with Err().
+//
+// An Image is not safe for concurrent mutation. Independent images may be
+// processed in parallel. Clone before handing the same source to another
+// goroutine.
 type Image struct {
 	frames     []Frame
 	loops      int
@@ -79,11 +83,12 @@ func (img *Image) primary() *image.NRGBA {
 	return img.frames[0].Img
 }
 
-// Clone returns a deep copy including frames.
+// Clone returns a deep copy of the receiver, including pixel buffers,
+// animation frames, EXIF tags, and ICC profile bytes. Use Clone when more
+// than one goroutine must process the same source image.
 func (img *Image) Clone() *Image {
-	if img.fail() {
-		out := *img
-		return &out
+	if img == nil {
+		return failed(wrap(ErrRuntime, "nil image"))
 	}
 	cp := *img
 	cp.frames = make([]Frame, len(img.frames))

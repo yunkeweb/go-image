@@ -41,6 +41,7 @@ func (img *Image) Save(path string, opts ...EncodeOptions) *Image
 
 | Method | Notes |
 |--------|-------|
+| `Clone` | Deep-copies pixel buffers, frames, EXIF, and ICC profile. An `Image` is not safe for concurrent mutation; clone before sharing across goroutines |
 | `PickColor` | Out-of-bounds returns a zero `Color` |
 | `SetColorspace` | `"cmyk"` or anything else → RGB tag. Pixel data stays NRGBA |
 | `Resolution` | Default 72×72 |

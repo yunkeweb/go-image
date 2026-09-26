@@ -32,7 +32,7 @@ Go has no function overloading. Entry points are named by type:
 
 ## Delayed errors and goroutines
 
-Chains return `*Image`. The first error sticks on that value. Process independent files in parallel:
+Chains return `*Image`. The first error sticks on that value. An `Image` is **not** safe for concurrent mutation. Process independent files in parallel, or `Clone()` before sharing one source:
 
 ```go
 var wg sync.WaitGroup
@@ -49,7 +49,13 @@ for _, path := range paths {
     }()
 }
 wg.Wait()
+
+base := goimage.Open("photo.jpg")
+go func() { _ = base.Clone().Cover(400, 300, "center").ToJPEG().Save("a.jpg") }()
+go func() { _ = base.Clone().Greyscale().ToPNG().Save("b.png") }()
 ```
+
+`FromImage` and decode always copy into an owned NRGBA buffer with `draw.Draw`, so JPEG YCbCr, Paletted, RGBA, and NRGBA inputs never panic on a type assertion and never share the caller's `Pix` slice.
 
 Discarded NRGBA buffers go back to `sync.Pool` when their capacity is at most 16 MiB, so large images do not pin huge slices for later small work.
 

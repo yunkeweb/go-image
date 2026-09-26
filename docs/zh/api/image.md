@@ -41,6 +41,7 @@ func (img *Image) Save(path string, opts ...EncodeOptions) *Image
 
 | 方法 | 说明 |
 |------|------|
+| `Clone` | 深拷贝像素缓冲、动画帧、EXIF 与 ICC profile。`Image` 实例非并发安全；跨 goroutine 处理同一来源时先 `Clone()` |
 | `PickColor` | 越界返回零值 `Color` |
 | `SetColorspace` | `"cmyk"` 或其他值标记为 RGB。像素数据仍是 NRGBA |
 | `Resolution` | 默认 72×72 |

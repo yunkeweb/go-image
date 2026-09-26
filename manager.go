@@ -53,7 +53,7 @@ func (m *Manager) DecodeDataURI(uri string) *Image {
 	return result(decodeDataURI(uri, m.cfg))
 }
 
-// FromImage wraps a standard-library image.Image.
+// FromImage copies src into a library-owned NRGBA buffer with draw.Draw.
 func (m *Manager) FromImage(src image.Image) *Image {
 	return result(fromStdImage(src, m.cfg))
 }

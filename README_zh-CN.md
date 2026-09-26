@@ -84,7 +84,7 @@ anim := mgr.Animate(func(a *goimage.Animation) {
 
 | 格式 | 解码 | 编码 |
 |------|------|------|
-| JPEG | 支持（开启自动方向时应用 EXIF Orient） | 支持（质量 1–100，默认 75） |
+| JPEG | 支持（开启自动方向时应用 EXIF Orient） | 支持（质量 1–100，默认 80；`ToJPEG()` / `ToJPEG(95)`） |
 | PNG | 支持 | 支持 |
 | GIF | 静态 + 动画 | 静态 + 动画 |
 | WebP | 支持（`x/image/webp`） | 无损 VP8L |

@@ -9,8 +9,8 @@ func (img *Image) Encode(format Format, opts ...EncodeOptions) EncodedImage
 func (img *Image) EncodeByMediaType(mediaType string, opts ...EncodeOptions) EncodedImage
 func (img *Image) EncodeByExtension(ext string, opts ...EncodeOptions) EncodedImage
 func (img *Image) EncodeByPath(path string, opts ...EncodeOptions) EncodedImage
-func (img *Image) ToJPEG(args ...any) EncodedImage
-func (img *Image) ToJPG(args ...any) EncodedImage
+func (img *Image) ToJPEG(quality ...int) EncodedImage
+func (img *Image) ToJPG(quality ...int) EncodedImage
 func (img *Image) ToPNG(opts ...EncodeOptions) EncodedImage
 func (img *Image) ToGIF(opts ...EncodeOptions) EncodedImage
 func (img *Image) ToWebP(opts ...EncodeOptions) EncodedImage
@@ -39,7 +39,7 @@ func (e EncodedImage) Save(path string) error
 
 ```go
 type EncodeOptions struct {
-    Quality     int  // JPEG 0–100; default 75
+    Quality     int  // JPEG 0–100; default 80
     Progressive bool // accepted; stdlib JPEG is baseline
     Indexed     bool
     Interlaced  bool
@@ -47,7 +47,9 @@ type EncodeOptions struct {
 }
 ```
 
-`ToJPEG` / `ToJPG` accept an integer quality (`ToJPEG(85)`) or `EncodeOptions`. JPEG encoding writes no EXIF APP1 segment, so orientation tags cannot double-apply after `Orient()` / `Orientate()`.
+`ToJPEG` / `ToJPG` take a variadic quality: `ToJPEG()` uses 80, `ToJPEG(95)` sets quality to 95. Other encode options go through `Encode(FormatJPEG, EncodeOptions{...})`. JPEG encoding writes no EXIF APP1 segment, so orientation tags cannot double-apply after `Orient()` / `Orientate()`.
+
+GIF encoding keeps `DisposalNone` for opaque full-canvas frames and uses `DisposalBackground` only when a frame has alpha or does not cover the canvas, so opaque animations do not flash between frames.
 
 `ToAVIF`, `ToHEIC`, and `ToJPEG2000` return an `EncodedImage` whose `Err()` is `ErrNotSupported`.
 
@@ -55,7 +57,8 @@ type EncodeOptions struct {
 
 ```go
 img := goimage.Create(32, 32).Fill("blue")
-enc := img.ToJPEG(85)
+enc := img.ToJPEG()       // quality 80
+enc = img.ToJPEG(95)      // quality 95
 if err := enc.Err(); err != nil {
     log.Fatal(err)
 }

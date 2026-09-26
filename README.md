@@ -84,7 +84,7 @@ Package-level `Create`, `Read`, and `Animate` use a default manager.
 
 | Format | Decode | Encode |
 |--------|--------|--------|
-| JPEG | yes (EXIF Orient when auto-orientation is on) | yes (quality 1–100, default 75) |
+| JPEG | yes (EXIF Orient when auto-orientation is on) | yes (quality 1–100, default 80; `ToJPEG()` / `ToJPEG(95)`) |
 | PNG | yes | yes |
 | GIF | still + animated | still + animated |
 | WebP | yes (`x/image/webp`) | lossless VP8L |

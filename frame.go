@@ -75,12 +75,15 @@ func (img *Image) replaceAllGeometry(fn func(*image.NRGBA) (*image.NRGBA, error)
 	return img
 }
 
-// resetGIFFrameLayout rebases each frame to origin (0,0), clears GIF offsets,
-// and sets DisposalBackground so a later encode cannot leave ghosts or flicker.
+// resetGIFFrameLayout rebases each frame after Crop/Resize.
+// Opaque full-canvas frames keep DisposalNone (or Previous) so players
+// do not flash a background between frames. Transparent or region-cropped
+// frames reset DisposalBackground and sit at origin (0,0).
 func (img *Image) resetGIFFrameLayout() {
 	if img == nil {
 		return
 	}
+	cw, ch := img.Width(), img.Height()
 	for i := range img.frames {
 		f := &img.frames[i]
 		if f.Img == nil {
@@ -93,8 +96,41 @@ func (img *Image) resetGIFFrameLayout() {
 		}
 		f.OffsetLeft = 0
 		f.OffsetTop = 0
-		f.Dispose = int(gif.DisposalBackground)
+		if hasTransparency(f.Img) || !frameCoversCanvas(f, cw, ch) {
+			f.Dispose = int(gif.DisposalBackground)
+			continue
+		}
+		if f.Dispose == 0 || f.Dispose == int(gif.DisposalBackground) {
+			f.Dispose = int(gif.DisposalNone)
+		}
 	}
+}
+
+func frameCoversCanvas(f *Frame, canvasW, canvasH int) bool {
+	if f == nil || f.Img == nil || canvasW < 1 || canvasH < 1 {
+		return false
+	}
+	b := f.Img.Bounds()
+	return f.OffsetLeft == 0 && f.OffsetTop == 0 &&
+		b.Min.X == 0 && b.Min.Y == 0 &&
+		b.Dx() >= canvasW && b.Dy() >= canvasH
+}
+
+func gifDisposalForFrame(f *Frame, canvasW, canvasH int) byte {
+	if f == nil || f.Img == nil {
+		return gif.DisposalNone
+	}
+	opaqueFull := !hasTransparency(f.Img) && frameCoversCanvas(f, canvasW, canvasH)
+	if opaqueFull {
+		if f.Dispose == int(gif.DisposalPrevious) {
+			return gif.DisposalPrevious
+		}
+		return gif.DisposalNone
+	}
+	if f.Dispose == int(gif.DisposalPrevious) {
+		return gif.DisposalPrevious
+	}
+	return gif.DisposalBackground
 }
 
 func (img *Image) releaseFrames(except int) {

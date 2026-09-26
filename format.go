@@ -119,7 +119,7 @@ func formatFromPath(path string) (Format, error) {
 
 // EncodeOptions controls format-specific encoding, matching PHP encoder constructors.
 type EncodeOptions struct {
-	Quality     int  // JPEG/WebP 0–100; default 75
+	Quality     int  // JPEG/WebP 0–100; default 80
 	Progressive bool // JPEG (best-effort; stdlib writes baseline)
 	Indexed     bool // PNG palette
 	Interlaced  bool // PNG/GIF
@@ -128,7 +128,7 @@ type EncodeOptions struct {
 
 func (o EncodeOptions) qualityOrDefault() int {
 	if o.Quality <= 0 {
-		return 75
+		return 80
 	}
 	if o.Quality > 100 {
 		return 100

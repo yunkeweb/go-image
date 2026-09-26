@@ -6,9 +6,9 @@ Go 使用单一 NRGBA 驱动，没有 GD 或 Imagick 后端。
 
 | 格式 | 解码 | 编码 | 说明 |
 |------|------|------|------|
-| JPEG | 支持 | 支持 | 质量 1–100，默认 75。Progressive 会被接受并忽略（标准库写 baseline）。自动方向应用 EXIF 2–8。 |
+| JPEG | 支持 | 支持 | 质量 1–100，默认 80（`ToJPEG()` / `ToJPEG(95)`）。Progressive 会被接受并忽略（标准库写 baseline）。自动方向应用 EXIF 2–8。 |
 | PNG | 支持 | 支持 | |
-| GIF | 静态 + 动画 | 静态 + 动画 | 帧延迟单位为秒。 |
+| GIF | 静态 + 动画 | 静态 + 动画 | 帧延迟单位为秒。无透明全屏帧保留 `DisposalNone`；含透明或区域裁切帧使用 `DisposalBackground`。 |
 | WebP | 支持（`x/image/webp`） | 无损 VP8L | 纯 Go 编码器，无 CGO。 |
 | BMP | 支持 | 支持 | `x/image/bmp` |
 | TIFF | 支持 | 支持 | `x/image/tiff` |

@@ -54,7 +54,7 @@ img := goimage.Read("photo.jpg").
 if err := img.Err(); err != nil {
     log.Fatal(err)
 }
-if err := img.ToJPEG(goimage.EncodeOptions{Quality: 80}).Save("framed.jpg"); err != nil {
+if err := img.ToJPEG().Save("framed.jpg"); err != nil {
     log.Fatal(err)
 }
 ```

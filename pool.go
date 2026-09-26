@@ -46,13 +46,21 @@ func acquireNRGBARect(r image.Rectangle) *image.NRGBA {
 	return img
 }
 
+// maxPooledPix is the largest Pix backing store returned to pixPool.
+// Bigger slices (4K/8K working sets) are dropped so they cannot pin
+// huge buffers in the pool for later small-image work.
+const maxPooledPix = 16 << 20 // 16 MiB
+
 func releaseNRGBA(img *image.NRGBA) {
 	if img == nil || img.Pix == nil {
 		return
 	}
-	pix := img.Pix[:0]
+	pix := img.Pix
 	img.Pix = nil
-	pixPool.Put(pix)
+	if cap(pix) > maxPooledPix {
+		return
+	}
+	pixPool.Put(pix[:0])
 }
 
 func cloneNRGBA(n *image.NRGBA) *image.NRGBA {

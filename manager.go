@@ -164,10 +164,17 @@ func imageFromGIF(g *gif.GIF, cfg Config, origin Origin) *Image {
 		}
 		// Snapshot a full independent frame at origin so later Crop/Resize can
 		// reset Disposal/Rect without sharing the compositor canvas.
+		cloned := cloneNRGBA(canvas)
+		storedDispose := int(gif.DisposalNone)
+		if hasTransparency(cloned) {
+			storedDispose = int(gif.DisposalBackground)
+		} else if dispose == int(gif.DisposalPrevious) {
+			storedDispose = dispose
+		}
 		frames = append(frames, Frame{
-			Img:        cloneNRGBA(canvas),
+			Img:        cloned,
 			Delay:      delay,
-			Dispose:    int(gif.DisposalBackground),
+			Dispose:    storedDispose,
 			OffsetLeft: 0,
 			OffsetTop:  0,
 		})

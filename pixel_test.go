@@ -140,6 +140,22 @@ func TestToJPEGQualityShortcut(t *testing.T) {
 	}
 }
 
+func TestToJPEGVariadicDefault80(t *testing.T) {
+	src := solid(8, 8, Color{R: 200, G: 30, B: 40, A: 255})
+	def := src.ToJPEG()
+	q80 := src.Encode(FormatJPEG, EncodeOptions{Quality: 80})
+	q95 := src.ToJPEG(95)
+	if def.Err() != nil || q80.Err() != nil || q95.Err() != nil {
+		t.Fatalf("encode err default=%v q80=%v q95=%v", def.Err(), q80.Err(), q95.Err())
+	}
+	if !bytes.Equal(def.Bytes(), q80.Bytes()) {
+		t.Fatal("ToJPEG() should match quality 80")
+	}
+	if bytes.Equal(q95.Bytes(), def.Bytes()) {
+		t.Fatal("ToJPEG(95) should differ from default 80")
+	}
+}
+
 func TestGIFResizeResetsDisposalAndRect(t *testing.T) {
 	a := solid(8, 8, Color{R: 255, A: 255})
 	b := solid(8, 8, Color{G: 255, A: 255})
@@ -157,8 +173,12 @@ func TestGIFResizeResetsDisposalAndRect(t *testing.T) {
 		if f.OffsetLeft != 0 || f.OffsetTop != 0 {
 			t.Fatalf("frame %d offset %d,%d", i, f.OffsetLeft, f.OffsetTop)
 		}
-		if f.Dispose != int(gif.DisposalBackground) {
-			t.Fatalf("frame %d dispose %d", i, f.Dispose)
+		want := int(gif.DisposalPrevious)
+		if i != 0 {
+			want = int(gif.DisposalNone)
+		}
+		if f.Dispose != want {
+			t.Fatalf("frame %d dispose %d want %d", i, f.Dispose, want)
 		}
 		if f.Img.Rect.Min.X != 0 || f.Img.Rect.Min.Y != 0 {
 			t.Fatalf("frame %d rect min %v", i, f.Img.Rect.Min)
@@ -181,6 +201,25 @@ func TestGIFResizeResetsDisposalAndRect(t *testing.T) {
 	}
 }
 
+func TestGIFOpaqueResizeKeepsPreviousDisposal(t *testing.T) {
+	a := solid(8, 8, Color{R: 255, A: 255})
+	b := solid(8, 8, Color{G: 255, A: 255})
+	anim := New().Animate(func(an *Animation) {
+		an.AddImage(a, 0.1).AddImage(b, 0.1)
+	})
+	anim.frames[0].Dispose = int(gif.DisposalPrevious)
+	resized := anim.Resize(4, 4)
+	if resized.Err() != nil {
+		t.Fatal(resized.Err())
+	}
+	if resized.frames[0].Dispose != int(gif.DisposalPrevious) {
+		t.Fatalf("frame0 dispose %d want Previous", resized.frames[0].Dispose)
+	}
+	if resized.frames[1].Dispose != int(gif.DisposalNone) {
+		t.Fatalf("frame1 dispose %d want None", resized.frames[1].Dispose)
+	}
+}
+
 func TestPoolReuseAfterChain(t *testing.T) {
 	img := Create(16, 16).Fill(Color{R: 12, G: 34, B: 56, A: 255}).
 		Cover(8, 8, "center").
@@ -198,6 +237,91 @@ func TestPoolReuseAfterChain(t *testing.T) {
 func TestMapPixelsKeepsAlpha(t *testing.T) {
 	img := Create(1, 1).Fill(Color{R: 80, G: 80, B: 80, A: 90}).Invert()
 	assertNRGBA(t, img.PickColor(0, 0), 175, 175, 175, 90)
+}
+
+func TestGIFOpaqueEncodeUsesDisposalNone(t *testing.T) {
+	a := solid(6, 6, Color{R: 255, A: 255})
+	b := solid(6, 6, Color{G: 255, A: 255})
+	anim := New().Animate(func(an *Animation) {
+		an.AddImage(a, 0.1).AddImage(b, 0.1)
+	})
+	enc := anim.ToGIF()
+	if enc.Err() != nil {
+		t.Fatal(enc.Err())
+	}
+	g, err := gif.DecodeAll(bytes.NewReader(enc.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, d := range g.Disposal {
+		if d != gif.DisposalNone {
+			t.Fatalf("opaque frame %d disposal %d want None", i, d)
+		}
+	}
+	got := Read(enc.Bytes())
+	if got.PickColor(0, 0).R < 200 {
+		t.Fatalf("frame0 %+v", got.PickColor(0, 0))
+	}
+	if got.PickColorFrame(0, 0, 1).G < 200 {
+		t.Fatalf("frame1 %+v", got.PickColorFrame(0, 0, 1))
+	}
+}
+
+func TestGIFTransparentEncodeUsesDisposalBackground(t *testing.T) {
+	a := Create(6, 6).Fill(Color{R: 255, A: 128})
+	b := Create(6, 6).Fill(Color{G: 255, A: 128})
+	anim := New().Animate(func(an *Animation) {
+		an.AddImage(a, 0.1).AddImage(b, 0.1)
+	})
+	enc := anim.ToGIF()
+	if enc.Err() != nil {
+		t.Fatal(enc.Err())
+	}
+	g, err := gif.DecodeAll(bytes.NewReader(enc.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, d := range g.Disposal {
+		if d != gif.DisposalBackground {
+			t.Fatalf("transparent frame %d disposal %d want Background", i, d)
+		}
+	}
+}
+
+func TestGIFPartialFrameResetsDisposal(t *testing.T) {
+	a := solid(8, 8, Color{R: 255, A: 255})
+	anim := New().Animate(func(an *Animation) {
+		an.AddImage(a, 0.1).AddImage(a, 0.1)
+	})
+	anim.frames[1].OffsetLeft = 2
+	anim.frames[1].OffsetTop = 2
+	anim.frames[1].Img = acquireNRGBA(4, 4)
+	fillRect(anim.frames[1].Img, anim.frames[1].Img.Bounds(), Color{G: 255, A: 255}.NRGBA())
+	anim.resetGIFFrameLayout()
+	if anim.frames[1].OffsetLeft != 0 || anim.frames[1].OffsetTop != 0 {
+		t.Fatalf("partial offset %d,%d", anim.frames[1].OffsetLeft, anim.frames[1].OffsetTop)
+	}
+	if anim.frames[1].Dispose != int(gif.DisposalBackground) {
+		t.Fatalf("partial dispose %d", anim.frames[1].Dispose)
+	}
+	if anim.frames[0].Dispose != int(gif.DisposalNone) {
+		t.Fatalf("opaque full dispose %d", anim.frames[0].Dispose)
+	}
+}
+
+func TestReleaseNRGBADropsHugePix(t *testing.T) {
+	n := acquireNRGBA(2, 2)
+	n.Pix = make([]byte, maxPooledPix+64)
+	n.Stride = 8
+	n.Rect = image.Rect(0, 0, 2, 2)
+	releaseNRGBA(n)
+	got := pixPool.Get().([]byte)
+	if cap(got) > maxPooledPix {
+		t.Fatalf("pool retained cap=%d", cap(got))
+	}
+	if cap(got) <= maxPooledPix {
+		pixPool.Put(got[:0])
+	}
 }
 
 func TestPixelAtMatchesNativeNRGBA(t *testing.T) {

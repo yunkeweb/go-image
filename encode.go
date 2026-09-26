@@ -93,50 +93,15 @@ func (img *Image) EncodeByPath(path string, opts ...EncodeOptions) EncodedImage 
 	return img.Encode(f, opts...)
 }
 
-func parseEncodeArgs(args []any) EncodeOptions {
-	var o EncodeOptions
-	for _, a := range args {
-		switch v := a.(type) {
-		case EncodeOptions:
-			o = v
-		case *EncodeOptions:
-			if v != nil {
-				o = *v
-			}
-		case int:
-			o.Quality = v
-		case int8:
-			o.Quality = int(v)
-		case int16:
-			o.Quality = int(v)
-		case int32:
-			o.Quality = int(v)
-		case int64:
-			o.Quality = int(v)
-		case uint:
-			o.Quality = int(v)
-		case uint8:
-			o.Quality = int(v)
-		case uint16:
-			o.Quality = int(v)
-		case uint32:
-			o.Quality = int(v)
-		case uint64:
-			o.Quality = int(v)
-		case float64:
-			o.Quality = int(v)
-		case float32:
-			o.Quality = int(v)
-		}
+// ToJPEG encodes JPEG. With no arguments quality is 80; ToJPEG(95) sets quality.
+func (img *Image) ToJPEG(quality ...int) EncodedImage {
+	o := EncodeOptions{}
+	if len(quality) > 0 {
+		o.Quality = quality[0]
 	}
-	return o
+	return img.Encode(FormatJPEG, o)
 }
-
-// ToJPEG encodes JPEG. Pass an int quality (e.g. ToJPEG(85)) or EncodeOptions.
-func (img *Image) ToJPEG(args ...any) EncodedImage {
-	return img.Encode(FormatJPEG, parseEncodeArgs(args))
-}
-func (img *Image) ToJPG(args ...any) EncodedImage            { return img.ToJPEG(args...) }
+func (img *Image) ToJPG(quality ...int) EncodedImage         { return img.ToJPEG(quality...) }
 func (img *Image) ToPNG(opts ...EncodeOptions) EncodedImage  { return img.Encode(FormatPNG, opts...) }
 func (img *Image) ToGIF(opts ...EncodeOptions) EncodedImage  { return img.Encode(FormatGIF, opts...) }
 func (img *Image) ToWebP(opts ...EncodeOptions) EncodedImage { return img.Encode(FormatWEBP, opts...) }
@@ -242,11 +207,7 @@ func encodeGIF(img *Image, o EncodeOptions) ([]byte, error) {
 		releaseNRGBA(canvas)
 		g.Image = append(g.Image, p)
 		g.Delay = append(g.Delay, delayToGIF(f.Delay))
-		d := byte(f.Dispose)
-		if d == 0 {
-			d = gif.DisposalBackground
-		}
-		g.Disposal = append(g.Disposal, d)
+		g.Disposal = append(g.Disposal, gifDisposalForFrame(&f, w, h))
 	}
 	var buf bytes.Buffer
 	if err := gif.EncodeAll(&buf, g); err != nil {

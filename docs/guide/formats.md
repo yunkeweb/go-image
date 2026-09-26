@@ -6,9 +6,9 @@ Go uses a single NRGBA driver. There is no GD or Imagick backend.
 
 | Format | Decode | Encode | Notes |
 |--------|--------|--------|-------|
-| JPEG | yes | yes | Quality 1–100, default 75. Progressive is accepted and ignored (stdlib writes baseline). Auto-orientation applies EXIF 2–8. |
+| JPEG | yes | yes | Quality 1–100, default 80 (`ToJPEG()` / `ToJPEG(95)`). Progressive is accepted and ignored (stdlib writes baseline). Auto-orientation applies EXIF 2–8. |
 | PNG | yes | yes | |
-| GIF | still + animated | still + animated | Frame delay is seconds. |
+| GIF | still + animated | still + animated | Frame delay is seconds. Opaque full-canvas frames keep `DisposalNone`; transparent or cropped frames use `DisposalBackground`. |
 | WebP | yes (`x/image/webp`) | lossless VP8L | Custom encoder, no CGO. |
 | BMP | yes | yes | `x/image/bmp` |
 | TIFF | yes | yes | `x/image/tiff` |

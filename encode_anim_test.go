@@ -10,7 +10,7 @@ import (
 
 func TestJPEGRoundTrip(t *testing.T) {
 	src := solid(12, 8, Color{R: 200, G: 30, B: 40, A: 255})
-	enc := src.ToJPEG(EncodeOptions{Quality: 90})
+	enc := src.ToJPEG(90)
 	if enc.Err() != nil {
 		t.Fatal(enc.Err())
 	}

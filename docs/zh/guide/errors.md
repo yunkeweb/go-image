@@ -1,6 +1,6 @@
 # 错误处理
 
-PHP Intervention Image 抛出异常。go-image 把第一次失败保存在 `Image` 上，以便继续链式调用。
+go-image 把第一次失败保存在 `Image` 上，以便继续链式调用。每个 `*Image` 拥有自己的错误与像素缓冲，适合在 goroutine 中独立处理。
 
 ## 签名
 
@@ -11,12 +11,12 @@ func (img *Image) Err() error
 ## 行为
 
 1. 修改器返回同一个 `*Image`。
-2. 若 `Err()` 已有值，后续修改器为空操作。
-3. 编码方法返回 `EncodedImage`。使用 `enc.Err()` 或 `Save` 的返回值。
+2. 若 `Err()` 已设置，后续修改器为空操作。
+3. 编码方法返回 `EncodedImage`。使用 `enc.Err()` 或 `Save` 的错误。
 4. 可用 `errors.Is` 判断哨兵错误。
 
 ```go
-img := goimage.Read("missing.jpg").Cover(200, 200, "center")
+img := goimage.Open("missing.jpg").Cover(200, 200, "center")
 if err := img.Err(); err != nil {
     if errors.Is(err, goimage.ErrDecoder) {
         log.Fatal("could not decode:", err)
@@ -31,11 +31,11 @@ if err := img.Err(); err != nil {
 |------|----------|
 | `ErrRuntime` | 空图像或意外状态 |
 | `ErrDecoder` | 无法读取输入 |
-| `ErrEncoder` | 编码或保存路径失败 |
+| `ErrEncoder` | 编码或保存失败 |
 | `ErrGeometry` | 非法尺寸 |
-| `ErrInvalidDimensions` | 宽度与高度同时为 `0` |
+| `ErrInvalidDimensions` | 宽和高同时为 `0` |
 | `ErrColor` | 无法解析的颜色 |
-| `ErrInput` | 参数错误（动画索引等） |
+| `ErrInput` | 非法参数（动画索引等） |
 | `ErrNotSupported` | AVIF / HEIC / JPEG 2000，或未知格式 |
 | `ErrNotWritable` | 文件系统写入失败 |
 | `ErrAnimation` | 动画构建器没有帧 |

@@ -65,7 +65,7 @@ func (img *Image) Text(text string, x, y int, fontInit any) *Image {
 			case "middle", "center":
 				py += ascent / 2
 			case "bottom":
-				// baseline at y (PHP default)
+				// baseline at y
 			}
 			if fnt.angle != 0 {
 				drawStringRotated(dst, face, px, py, line, col, strokeCol, fnt.strokeWidth, fnt.angle)

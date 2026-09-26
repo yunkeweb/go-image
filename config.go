@@ -1,6 +1,6 @@
 package goimage
 
-// Config mirrors PHP Intervention\Image\Config.
+// Config holds decode and encode defaults for a Manager or a single call.
 type Config struct {
 	AutoOrientation bool
 	DecodeAnimation bool
@@ -17,7 +17,7 @@ func defaultConfig() Config {
 	}
 }
 
-// Option mutates Manager configuration.
+// Option is a functional option applied to Config.
 type Option func(*Config)
 
 func WithAutoOrientation(v bool) Option {

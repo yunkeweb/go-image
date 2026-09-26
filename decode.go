@@ -17,74 +17,32 @@ import (
 	"golang.org/x/image/webp"
 )
 
-func decodeInput(input any, cfg Config) (*Image, error) {
-	switch v := input.(type) {
-	case *Image:
-		if v == nil {
-			return nil, wrap(ErrDecoder, "nil image")
-		}
-		if v.Err() != nil {
-			return nil, v.Err()
-		}
-		return v.Clone(), nil
-	case Image:
-		return v.Clone(), nil
-	case image.Image:
-		img := newImage([]Frame{{Img: asNRGBA(v)}}, cfg)
-		img.origin = Origin{MediaType: "application/octet-stream"}
-		return img, nil
-	case string:
-		return decodeString(v, cfg)
-	case []byte:
-		return decodeBytes(v, "", cfg)
-	case io.Reader:
-		data, err := io.ReadAll(v)
-		if err != nil {
-			return nil, wrap(ErrDecoder, "unable to read input: %v", err)
-		}
-		return decodeBytes(data, "", cfg)
-	default:
-		return nil, wrap(ErrDecoder, "unable to decode input of type %T", input)
+func decodeFile(path string, cfg Config) (*Image, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, wrap(ErrDecoder, "unable to read file: %v", err)
 	}
+	return decodeBytes(data, path, cfg)
 }
 
-func decodeString(s string, cfg Config) (*Image, error) {
-	trim := strings.TrimSpace(s)
-	if strings.HasPrefix(trim, "data:") {
-		return decodeDataURI(trim, cfg)
+func decodeReader(r io.Reader, cfg Config) (*Image, error) {
+	if r == nil {
+		return nil, wrap(ErrDecoder, "nil reader")
 	}
-	if looksLikePath(trim) {
-		data, err := os.ReadFile(trim)
-		if err != nil {
-			// Fall through: might be raw/base64.
-		} else {
-			img, derr := decodeBytes(data, trim, cfg)
-			if derr == nil {
-				return img, nil
-			}
-		}
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return nil, wrap(ErrDecoder, "unable to read input: %v", err)
 	}
-	if decoded, err := decodeBase64Flexible(trim); err == nil {
-		return decodeBytes(decoded, "", cfg)
-	}
-	return decodeBytes([]byte(s), "", cfg)
+	return decodeBytes(data, "", cfg)
 }
 
-func looksLikePath(s string) bool {
-	if s == "" || strings.Contains(s, "\n") {
-		return false
+func fromStdImage(src image.Image, cfg Config) (*Image, error) {
+	if src == nil {
+		return nil, wrap(ErrDecoder, "nil image")
 	}
-	if strings.ContainsAny(s, `/\`) {
-		return true
-	}
-	if i := strings.LastIndex(s, "."); i > 0 && i < len(s)-1 {
-		ext := strings.ToLower(s[i+1:])
-		switch ext {
-		case "jpg", "jpeg", "png", "gif", "webp", "bmp", "tif", "tiff":
-			return true
-		}
-	}
-	return false
+	img := newImage([]Frame{{Img: asNRGBA(src)}}, cfg)
+	img.origin = Origin{MediaType: "application/octet-stream"}
+	return img, nil
 }
 
 func decodeDataURI(s string, cfg Config) (*Image, error) {
@@ -283,7 +241,6 @@ func readExifOrientation(tiffData []byte) int {
 }
 
 func applyOrientation(img *Image, orient int) {
-	// Matches PHP Drivers\Gd\Modifiers\AlignRotationModifier (imagerotate CCW).
 	switch orient {
 	case 2:
 		img.Flop()

@@ -1,6 +1,6 @@
 # Errors
 
-PHP Intervention Image throws exceptions. go-image stores the first failure on the `Image` value so chains stay fluent.
+go-image stores the first failure on the `Image` value so chains stay fluent. That model is safe for goroutines: each `*Image` owns its own error and pixel buffers.
 
 ## Signature
 
@@ -16,7 +16,7 @@ func (img *Image) Err() error
 4. Sentinel kinds can be inspected with `errors.Is`.
 
 ```go
-img := goimage.Read("missing.jpg").Cover(200, 200, "center")
+img := goimage.Open("missing.jpg").Cover(200, 200, "center")
 if err := img.Err(); err != nil {
     if errors.Is(err, goimage.ErrDecoder) {
         log.Fatal("could not decode:", err)

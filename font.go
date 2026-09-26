@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Font holds typography options, matching PHP Typography\Font.
+// Font holds typography options for Text.
 type Font struct {
 	filename    string
 	size        float64

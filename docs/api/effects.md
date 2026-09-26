@@ -35,7 +35,7 @@ func (img *Image) Orientate() *Image
 | `Blur` | `amount` | Box-blur radius; `<= 0` is a no-op |
 | `Sharpen` | `amount` | Unsharp amount; `<= 0` is a no-op |
 | `ReduceColors` | `limit` | Palette size via median-cut |
-| `Rotate` | `angle` | Degrees **counter-clockwise** (PHP GD) |
+| `Rotate` | `angle` | Degrees **counter-clockwise** |
 | `Rotate` | `background` | Fill color for new corners |
 | `Flip` | | Vertical (top ↔ bottom) |
 | `Flop` | | Horizontal (left ↔ right) |
@@ -44,7 +44,7 @@ func (img *Image) Orientate() *Image
 ## Example
 
 ```go
-img := goimage.Read("photo.jpg").
+img := goimage.Open("photo.jpg").
     Orient().
     Greyscale().
     Brightness(10).

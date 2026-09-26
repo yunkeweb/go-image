@@ -3,7 +3,7 @@ layout: home
 hero:
   name: go-image
   text: Fluent image processing in Go
-  tagline: Idiomatic port of Intervention Image. Standard library plus golang.org/x/image only.
+  tagline: Package-level APIs, functional options, and stdlib-only codecs. No CGO.
   actions:
     - theme: brand
       text: Get Started
@@ -12,10 +12,10 @@ hero:
       text: API Reference
       link: /api/manager
 features:
-  - title: Fluent chains
-    details: Mutating methods return *Image. The first failure is stored on the value and retrieved with Err().
-  - title: Geometry and effects
-    details: Resize, Cover, Contain, Crop, Rotate, Blur, Sharpen, Greyscale, and the rest of the Intervention Image v3 surface.
+  - title: Idiomatic Go
+    details: Open, Decode, and New at package level. Functional options on every entry point. Strong types instead of any.
+  - title: Concurrent by default
+    details: Each *Image owns its pixels and delayed error. sync.Pool recycles NRGBA buffers up to 16 MiB.
   - title: Encode without CGO
-    details: JPEG, PNG, GIF (including animation), lossless WebP, BMP, and TIFF. No GD or Imagick.
+    details: JPEG, PNG, GIF (including animation), lossless WebP, BMP, and TIFF.
 ---

@@ -1,6 +1,6 @@
 # 格式
 
-Go 使用单一 NRGBA 驱动，没有 GD 或 Imagick 后端。
+单一 NRGBA 后端，基于 Go 标准库与 `golang.org/x/image`。
 
 ## 编解码对照
 

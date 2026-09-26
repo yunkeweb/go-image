@@ -7,7 +7,7 @@ import (
 	"image/gif"
 )
 
-// Frame is one animation frame. Delay is in seconds (PHP Frame::delay).
+// Frame is one animation frame. Delay is in seconds.
 type Frame struct {
 	Img        *image.NRGBA
 	Delay      float64

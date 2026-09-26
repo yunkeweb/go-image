@@ -72,7 +72,7 @@ func (o Origin) FileExtension() string
 ## Example
 
 ```go
-img := goimage.Create(8, 8).Fill("#00ff00")
+img := goimage.New(8, 8).Fill("#00ff00")
 c := img.PickColor(0, 0)
 log.Printf("%dx%d %#02x%02x%02x", img.Width(), img.Height(), c.R, c.G, c.B)
 if err := img.Clone().ToPNG().Save("copy.png"); err != nil {

@@ -5,11 +5,17 @@ import (
 	"image/draw"
 )
 
-// Place overlays another image (watermark) using 9-point alignment.
-// opacity is 0–100, matching PHP PlaceModifier.
-func (img *Image) Place(element any, position string, offsetX, offsetY, opacity int) *Image {
+// Place overlays src (watermark) using 9-point alignment.
+// opacity is 0–100.
+func (img *Image) Place(src *Image, position string, offsetX, offsetY, opacity int) *Image {
 	if img.fail() {
 		return img
+	}
+	if src == nil {
+		return img.setErr(wrap(ErrInput, "nil watermark"))
+	}
+	if src.Err() != nil {
+		return img.setErr(src.Err())
 	}
 	if position == "" {
 		position = "top-left"
@@ -20,10 +26,7 @@ func (img *Image) Place(element any, position string, offsetX, offsetY, opacity 
 	if opacity > 100 {
 		opacity = 100
 	}
-	wm := img.managerRead(element)
-	if wm.Err() != nil {
-		return img.setErr(wm.Err())
-	}
+	wm := src
 	pos := placePosition(img.Size(), wm.Size(), position, offsetX, offsetY)
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		dst := cloneNRGBA(n)
@@ -38,11 +41,6 @@ func (img *Image) Place(element any, position string, offsetX, offsetY, opacity 
 		placeTransparent(dst, overlay, pos, opacity)
 		return dst, nil
 	})
-}
-
-func (img *Image) managerRead(element any) *Image {
-	m := &Manager{cfg: img.cfg}
-	return m.Read(element)
 }
 
 func placePosition(imageSize, wm Size, position string, ox, oy int) Point {

@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'go-image',
-  description: 'Idiomatic Go port of Intervention Image',
+  description: 'Fluent image processing library for Go',
   base: '/go-image/',
   lastUpdated: true,
   ignoreDeadLinks: false,
@@ -24,7 +24,7 @@ export default defineConfig({
                 { text: 'Getting started', link: '/guide/getting-started' },
                 { text: 'Errors', link: '/guide/errors' },
                 { text: 'Formats', link: '/guide/formats' },
-                { text: 'PHP migration', link: '/guide/migration' },
+                { text: 'Design', link: '/guide/design' },
               ],
             },
           ],
@@ -32,7 +32,7 @@ export default defineConfig({
             {
               text: 'API',
               items: [
-                { text: 'Manager', link: '/api/manager' },
+                { text: 'Package API', link: '/api/manager' },
                 { text: 'Image', link: '/api/image' },
                 { text: 'Geometry', link: '/api/geometry' },
                 { text: 'Effects', link: '/api/effects' },
@@ -55,7 +55,7 @@ export default defineConfig({
         ],
         search: { provider: 'local' },
         footer: {
-          message: 'MIT License. Port of Intervention Image by Oliver Vogel.',
+          message: 'MIT License.',
           copyright: 'Copyright © 2026 yunkeweb',
         },
       },
@@ -78,7 +78,7 @@ export default defineConfig({
                 { text: '快速开始', link: '/zh/guide/getting-started' },
                 { text: '错误处理', link: '/zh/guide/errors' },
                 { text: '格式', link: '/zh/guide/formats' },
-                { text: '从 PHP 迁移', link: '/zh/guide/migration' },
+                { text: '设计理念', link: '/zh/guide/design' },
               ],
             },
           ],
@@ -86,7 +86,7 @@ export default defineConfig({
             {
               text: 'API',
               items: [
-                { text: 'Manager', link: '/zh/api/manager' },
+                { text: '包级 API', link: '/zh/api/manager' },
                 { text: 'Image', link: '/zh/api/image' },
                 { text: '几何变换', link: '/zh/api/geometry' },
                 { text: '效果', link: '/zh/api/effects' },
@@ -109,7 +109,7 @@ export default defineConfig({
         ],
         search: { provider: 'local' },
         footer: {
-          message: 'MIT 许可证。移植自 Oliver Vogel 的 Intervention Image。',
+          message: 'MIT 许可证。',
           copyright: 'Copyright © 2026 yunkeweb',
         },
       },

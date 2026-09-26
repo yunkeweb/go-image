@@ -13,7 +13,7 @@ func (img *Image) DrawCircle(x, y int, init func(*Drawable)) *Image
 func (img *Image) DrawPolygon(init func(*Drawable)) *Image
 func (img *Image) DrawLine(init func(*Drawable)) *Image
 func (img *Image) DrawBezier(init func(*Drawable)) *Image
-func (img *Image) Place(element any, position string, offsetX, offsetY, opacity int) *Image
+func (img *Image) Place(src *Image, position string, offsetX, offsetY, opacity int) *Image
 func (img *Image) Text(text string, x, y int, fontInit any) *Image
 ```
 
@@ -64,11 +64,11 @@ func (f *Font) Stroke(col any, width int) *Font
 ## 示例
 
 ```go
-img := goimage.Create(320, 180).Fill("#0f172a")
+img := goimage.New(320, 180).Fill("#0f172a")
 img.DrawRectangle(20, 20, func(d *goimage.Drawable) {
     d.Size(80, 40).SetBackground("#22c55e").SetBorder(2, "#ffffff")
 })
-img.Place("logo.png", "bottom-right", 8, 8, 80)
+img.Place(goimage.Open("logo.png"), "bottom-right", 8, 8, 80)
 img.Text("go-image", 20, 160, func(f *goimage.Font) {
     f.Size(18).Color("#e2e8f0").Align("left")
 })

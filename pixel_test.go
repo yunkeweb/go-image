@@ -133,7 +133,7 @@ func TestToJPEGQualityShortcut(t *testing.T) {
 	if enc.MimeType() != "image/jpeg" {
 		t.Fatal(enc.MimeType())
 	}
-	got := Read(enc.Bytes())
+	got := DecodeBytes(enc.Bytes())
 	c := got.PickColor(3, 3)
 	if c.R < 150 || c.B > 80 {
 		t.Fatalf("jpeg pixel %+v", c)
@@ -159,7 +159,7 @@ func TestToJPEGVariadicDefault80(t *testing.T) {
 func TestGIFResizeResetsDisposalAndRect(t *testing.T) {
 	a := solid(8, 8, Color{R: 255, A: 255})
 	b := solid(8, 8, Color{G: 255, A: 255})
-	anim := New().Animate(func(an *Animation) {
+	anim := Animate(func(an *Animation) {
 		an.AddImage(a, 0.1).AddImage(b, 0.1)
 	})
 	anim.frames[0].OffsetLeft = 3
@@ -188,7 +188,7 @@ func TestGIFResizeResetsDisposalAndRect(t *testing.T) {
 	if enc.Err() != nil {
 		t.Fatal(enc.Err())
 	}
-	got := Read(enc.Bytes())
+	got := DecodeBytes(enc.Bytes())
 	if got.Count() != 2 {
 		t.Fatalf("frames %d", got.Count())
 	}
@@ -204,7 +204,7 @@ func TestGIFResizeResetsDisposalAndRect(t *testing.T) {
 func TestGIFOpaqueResizeKeepsPreviousDisposal(t *testing.T) {
 	a := solid(8, 8, Color{R: 255, A: 255})
 	b := solid(8, 8, Color{G: 255, A: 255})
-	anim := New().Animate(func(an *Animation) {
+	anim := Animate(func(an *Animation) {
 		an.AddImage(a, 0.1).AddImage(b, 0.1)
 	})
 	anim.frames[0].Dispose = int(gif.DisposalPrevious)
@@ -242,7 +242,7 @@ func TestMapPixelsKeepsAlpha(t *testing.T) {
 func TestGIFOpaqueEncodeUsesDisposalNone(t *testing.T) {
 	a := solid(6, 6, Color{R: 255, A: 255})
 	b := solid(6, 6, Color{G: 255, A: 255})
-	anim := New().Animate(func(an *Animation) {
+	anim := Animate(func(an *Animation) {
 		an.AddImage(a, 0.1).AddImage(b, 0.1)
 	})
 	enc := anim.ToGIF()
@@ -258,7 +258,7 @@ func TestGIFOpaqueEncodeUsesDisposalNone(t *testing.T) {
 			t.Fatalf("opaque frame %d disposal %d want None", i, d)
 		}
 	}
-	got := Read(enc.Bytes())
+	got := DecodeBytes(enc.Bytes())
 	if got.PickColor(0, 0).R < 200 {
 		t.Fatalf("frame0 %+v", got.PickColor(0, 0))
 	}
@@ -270,7 +270,7 @@ func TestGIFOpaqueEncodeUsesDisposalNone(t *testing.T) {
 func TestGIFTransparentEncodeUsesDisposalBackground(t *testing.T) {
 	a := Create(6, 6).Fill(Color{R: 255, A: 128})
 	b := Create(6, 6).Fill(Color{G: 255, A: 128})
-	anim := New().Animate(func(an *Animation) {
+	anim := Animate(func(an *Animation) {
 		an.AddImage(a, 0.1).AddImage(b, 0.1)
 	})
 	enc := anim.ToGIF()
@@ -290,7 +290,7 @@ func TestGIFTransparentEncodeUsesDisposalBackground(t *testing.T) {
 
 func TestGIFPartialFrameResetsDisposal(t *testing.T) {
 	a := solid(8, 8, Color{R: 255, A: 255})
-	anim := New().Animate(func(an *Animation) {
+	anim := Animate(func(an *Animation) {
 		an.AddImage(a, 0.1).AddImage(a, 0.1)
 	})
 	anim.frames[1].OffsetLeft = 2

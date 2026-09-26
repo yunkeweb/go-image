@@ -1,11 +1,10 @@
-// Package goimage is an idiomatic Go port of Intervention Image (PHP).
+// Package goimage is a fluent image processing library for Go.
 //
-// It provides a fluent API for creating, decoding, transforming, drawing on,
-// and encoding raster images using only the Go standard library and
-// golang.org/x/image. PHP exceptions are represented as a delayed error on
-// the Image value, retrieved with Image.Err().
+// It creates, decodes, transforms, draws on, and encodes raster images using
+// the Go standard library and golang.org/x/image. The first failure in a
+// chain is stored on the Image value and retrieved with Image.Err().
 //
-//	img := goimage.New().Read("photo.jpg").
+//	img := goimage.Open("photo.jpg").
 //		Cover(400, 300, "center").
 //		Greyscale().
 //		Sharpen(10)

@@ -3,7 +3,7 @@ layout: home
 hero:
   name: go-image
   text: 面向 Go 的流式图像处理
-  tagline: Intervention Image 的惯用 Go 移植。仅使用标准库与 golang.org/x/image。
+  tagline: 包级 API、Functional Options、仅标准库编解码。无 CGO。
   actions:
     - theme: brand
       text: 快速开始
@@ -12,10 +12,10 @@ hero:
       text: API 参考
       link: /zh/api/manager
 features:
-  - title: 链式调用
-    details: 修改器返回 *Image。第一次失败保存在对象上，通过 Err() 读取。
-  - title: 几何与效果
-    details: Resize、Cover、Contain、Crop、Rotate、Blur、Sharpen、Greyscale 等 Intervention Image v3 公共 API。
+  - title: 地道的 Go
+    details: 包级 Open、Decode、New。每个入口都支持 Functional Options。用强类型替代 any。
+  - title: 天生适合并发
+    details: 每个 *Image 拥有自己的像素与延迟错误。sync.Pool 回收不超过 16 MiB 的 NRGBA 缓冲。
   - title: 无 CGO 编码
-    details: JPEG、PNG、GIF（含动画）、无损 WebP、BMP、TIFF。无需 GD 或 Imagick。
+    details: JPEG、PNG、GIF（含动画）、无损 WebP、BMP、TIFF。
 ---

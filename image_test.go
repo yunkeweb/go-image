@@ -45,7 +45,7 @@ func TestReadPNGRoundTrip(t *testing.T) {
 	if enc.Err() != nil {
 		t.Fatal(enc.Err())
 	}
-	got := Read(enc.Bytes())
+	got := DecodeBytes(enc.Bytes())
 	if got.Err() != nil {
 		t.Fatal(got.Err())
 	}
@@ -65,7 +65,7 @@ func TestReadFileAndSave(t *testing.T) {
 	if err := src.ToPNG().Save(path); err != nil {
 		t.Fatal(err)
 	}
-	got := Read(path)
+	got := Open(path)
 	if got.Err() != nil {
 		t.Fatal(got.Err())
 	}
@@ -84,13 +84,12 @@ func TestReadFileAndSave(t *testing.T) {
 func TestReadDataURIAndBase64(t *testing.T) {
 	src := solid(2, 2, ColorWhite)
 	raw := src.ToPNG().Bytes()
-	b64 := base64.StdEncoding.EncodeToString(raw)
-	uri := "data:image/png;base64," + b64
-	a := Read(uri)
+	uri := "data:image/png;base64," + base64.StdEncoding.EncodeToString(raw)
+	a := DecodeDataURI(uri)
 	if a.Err() != nil {
 		t.Fatal(a.Err())
 	}
-	b := Read(b64)
+	b := DecodeBytes(raw)
 	if b.Err() != nil {
 		t.Fatal(b.Err())
 	}
@@ -102,7 +101,7 @@ func TestReadDataURIAndBase64(t *testing.T) {
 func TestReadGoImage(t *testing.T) {
 	n := image.NewNRGBA(image.Rect(0, 0, 3, 3))
 	n.SetNRGBA(1, 1, color.NRGBA{R: 9, A: 255})
-	img := Read(n)
+	img := FromImage(n)
 	if img.Err() != nil {
 		t.Fatal(img.Err())
 	}

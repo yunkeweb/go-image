@@ -1,6 +1,6 @@
 # 编码
 
-对应 PHP `EncodedImage` 的二进制输出。
+编码后的二进制输出与媒体类型。
 
 ## 签名
 
@@ -56,7 +56,7 @@ GIF 编码对无透明且全屏覆盖的帧保留 `DisposalNone`，仅在含 Alp
 ## 示例
 
 ```go
-img := goimage.Create(32, 32).Fill("blue")
+img := goimage.New(32, 32).Fill("blue")
 enc := img.ToJPEG()       // 质量 80
 enc = img.ToJPEG(95)      // 质量 95
 if err := enc.Err(); err != nil {

@@ -2,7 +2,7 @@ package goimage
 
 import "fmt"
 
-// Sentinel errors matching PHP Intervention Image exception classes.
+// Sentinel errors for delayed Image.Err() and EncodedImage.Err().
 var (
 	ErrRuntime           = fmt.Errorf("runtime error")
 	ErrDecoder           = fmt.Errorf("decoder error")

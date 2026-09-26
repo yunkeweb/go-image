@@ -8,8 +8,8 @@ import (
 )
 
 // Image is the fluent image object. Methods mutate the receiver and return it
-// so callers can chain operations. PHP exceptions become a delayed error
-// retrieved with Err().
+// so callers can chain operations. The first failure is stored and retrieved
+// with Err().
 type Image struct {
 	frames     []Frame
 	loops      int

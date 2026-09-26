@@ -17,7 +17,7 @@ func TestJPEGRoundTrip(t *testing.T) {
 	if enc.MimeType() != "image/jpeg" {
 		t.Fatal(enc.MimeType())
 	}
-	got := Read(enc.Bytes())
+	got := DecodeBytes(enc.Bytes())
 	if got.Err() != nil {
 		t.Fatal(got.Err())
 	}
@@ -30,7 +30,7 @@ func TestJPEGRoundTrip(t *testing.T) {
 func TestGIFStillAndAnimated(t *testing.T) {
 	a := solid(6, 6, Color{R: 255, A: 255})
 	b := solid(6, 6, Color{G: 255, A: 255})
-	anim := New().Animate(func(an *Animation) {
+	anim := Animate(func(an *Animation) {
 		an.AddImage(a, 0.2).AddImage(b, 0.2).SetLoops(3)
 	})
 	if anim.Err() != nil {
@@ -43,7 +43,7 @@ func TestGIFStillAndAnimated(t *testing.T) {
 	if enc.Err() != nil {
 		t.Fatal(enc.Err())
 	}
-	got := Read(enc.Bytes())
+	got := DecodeBytes(enc.Bytes())
 	if got.Err() != nil {
 		t.Fatal(got.Err())
 	}
@@ -56,7 +56,7 @@ func TestSliceAndRemoveAnimation(t *testing.T) {
 	a := solid(4, 4, Color{R: 255, A: 255})
 	b := solid(4, 4, Color{G: 255, A: 255})
 	c := solid(4, 4, Color{B: 255, A: 255})
-	anim := New().Animate(func(an *Animation) {
+	anim := Animate(func(an *Animation) {
 		an.AddImage(a, 0.1).AddImage(b, 0.1).AddImage(c, 0.1)
 	})
 	sliced := anim.Clone().SliceAnimation(1, 1)
@@ -81,7 +81,7 @@ func TestBMPAndTIFF(t *testing.T) {
 	if bmp.Err() != nil {
 		t.Fatal(bmp.Err())
 	}
-	got := Read(bmp.Bytes())
+	got := DecodeBytes(bmp.Bytes())
 	if got.Err() != nil {
 		t.Fatal(got.Err())
 	}
@@ -89,7 +89,7 @@ func TestBMPAndTIFF(t *testing.T) {
 	if tif.Err() != nil {
 		t.Fatal(tif.Err())
 	}
-	got = Read(tif.Bytes())
+	got = DecodeBytes(tif.Bytes())
 	if got.Err() != nil {
 		t.Fatal(got.Err())
 	}
@@ -108,7 +108,7 @@ func TestWebPEncodeDecode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("x/image/webp decode: %v", err)
 	}
-	got := Read(im)
+	got := FromImage(im)
 	c := got.PickColor(2, 2)
 	if c.R != 10 || c.G != 20 || c.B != 30 {
 		t.Fatalf("webp pixel %+v", c)
@@ -150,7 +150,7 @@ func TestParseFormatAliases(t *testing.T) {
 }
 
 func TestManagerOptions(t *testing.T) {
-	m := New(WithAutoOrientation(false), WithDecodeAnimation(false), WithBlendingColor("red"))
+	m := NewManager(WithAutoOrientation(false), WithDecodeAnimation(false), WithBlendingColor("red"))
 	if m.Config().AutoOrientation || m.Config().DecodeAnimation {
 		t.Fatal("options")
 	}
@@ -161,7 +161,7 @@ func TestManagerOptions(t *testing.T) {
 }
 
 func TestErrorMessages(t *testing.T) {
-	err := Read([]byte("nope")).Err()
+	err := DecodeBytes([]byte("nope")).Err()
 	if err == nil || !strings.Contains(err.Error(), "decode") && !strings.Contains(err.Error(), "unable") {
 		t.Fatalf("err %v", err)
 	}

@@ -6,7 +6,7 @@
 go get github.com/yunkeweb/go-image
 ```
 
-需要 **Go 1.22+**。额外依赖仅为官方 `golang.org/x/image`。
+需要 **Go 1.22+**。额外依赖只有官方 `golang.org/x/image`。
 
 ## 第一次编码
 
@@ -20,7 +20,7 @@ import (
 )
 
 func main() {
-	img := goimage.Read("photo.jpg").
+	img := goimage.Open("photo.jpg").
 		Cover(400, 300, "center").
 		Sharpen(8)
 	if err := img.Err(); err != nil {
@@ -36,7 +36,7 @@ func main() {
 ## 创建画布
 
 ```go
-img := goimage.Create(640, 480).
+img := goimage.New(640, 480).
 	Fill("#1e293b").
 	DrawCircle(320, 240, func(d *goimage.Drawable) {
 		d.SetRadius(80).SetBackground("#38bdf8")
@@ -49,16 +49,27 @@ if err := img.ToPNG().Save("circle.png"); err != nil {
 }
 ```
 
-## Manager 选项
+## Functional Options
+
+选项作用于单次包级调用：
 
 ```go
-mgr := goimage.New(
+img := goimage.Open("input.png",
 	goimage.WithAutoOrientation(true),
 	goimage.WithDecodeAnimation(true),
 	goimage.WithBlendingColor("ffffff"),
 	goimage.WithStrip(false),
 )
-img := mgr.Read("input.png")
+```
+
+多图共享配置时用 `NewManager`：
+
+```go
+mgr := goimage.NewManager(
+	goimage.WithAutoOrientation(true),
+	goimage.WithDecodeAnimation(true),
+)
+img := mgr.Open("input.png")
 ```
 
 | 选项 | 默认 | 含义 |
@@ -68,22 +79,19 @@ img := mgr.Read("input.png")
 | `WithBlendingColor` | `"ffffff"` | 压平透明通道时使用的底色（JPEG） |
 | `WithStrip` | `false` | 编码时丢弃 ICC profile |
 
-包级 `Create`、`Read`、`Animate` 使用上述默认 Manager。
+## 强类型输入
 
-## 可读输入
-
-`Read` 接受：
-
-- 文件路径（存在的 `string` 路径）
-- 原始字节（`[]byte`）
-- `io.Reader`
-- Data URI（`data:image/png;base64,...`）
-- Base64 字符串
-- `*Image`（克隆）
-- `image.Image`（标准库图像）
+| 函数 | 输入 |
+|------|------|
+| `Open` | 文件系统路径 |
+| `Decode` | `io.Reader` |
+| `DecodeBytes` | 已编码的 `[]byte` |
+| `DecodeDataURI` | `data:image/...;base64,...` |
+| `FromImage` | `image.Image` |
+| `New` | 空白画布 |
 
 ## 下一步
 
 - [错误模型](/zh/guide/errors)
 - [支持的格式](/zh/guide/formats)
-- [PHP → Go 对照](/zh/guide/migration)
+- [设计理念](/zh/guide/design)

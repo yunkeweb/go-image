@@ -6,7 +6,7 @@ import (
 	"math"
 )
 
-// Drawable configures a vector primitive, matching PHP geometry factories.
+// Drawable configures a vector primitive (rectangle, ellipse, line, …).
 type Drawable struct {
 	Width, Height  int
 	Radius         int

@@ -1,6 +1,6 @@
 # 几何变换
 
-对应 PHP `RectangleResizer` 及相关修改器。
+尺寸变换：缩放、铺满、包含、裁剪、留边、去边。
 
 ## 签名
 
@@ -23,7 +23,7 @@ func (img *Image) Trim(tolerance int) *Image
 
 | 名称 | 说明 |
 |------|------|
-| `width`, `height` | `0` 表示未指定（PHP `null`）。两边都为 `0` 时返回延迟错误 `ErrInvalidDimensions`，不会除零 |
+| `width`, `height` | `0` 表示未指定（保持宽高比）。两边都为 `0` 时返回延迟错误 `ErrInvalidDimensions` |
 | `position` | 九点枢轴；Cover 默认 `center` |
 | `background` | 新画布像素颜色（`Contain`、`Pad`、`Crop`、`ResizeCanvas`） |
 | `offsetX`, `offsetY` | 枢轴之后的裁剪偏移 |
@@ -48,7 +48,7 @@ func (img *Image) Trim(tolerance int) *Image
 ## 示例
 
 ```go
-img := goimage.Read("photo.jpg").
+img := goimage.Open("photo.jpg").
     Cover(400, 300, "center").
     Pad(420, 320, "#000000", "center")
 if err := img.Err(); err != nil {

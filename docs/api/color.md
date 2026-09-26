@@ -1,6 +1,6 @@
 # Color
 
-sRGB color with 8-bit channels. Alpha `255` is opaque, matching PHP RGB colors.
+sRGB color with 8-bit channels. Alpha `255` is opaque.
 
 ## Signatures
 
@@ -49,5 +49,5 @@ if err != nil {
 h, s, l := c.HSL()
 log.Println(c.ToHex("#"), h, s, l)
 
-img := goimage.Create(4, 4).Fill("tomato")
+img := goimage.New(4, 4).Fill("tomato")
 ```

@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	img := goimage.Read("photo.jpg").Cover(400, 300, "center")
+	img := goimage.Open("photo.jpg").Cover(400, 300, "center")
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}
@@ -27,8 +27,8 @@ func main() {
 ## Watermark
 
 ```go
-img := goimage.Read("photo.jpg").
-	Place("logo.png", "bottom-right", 16, 16, 70)
+img := goimage.Open("photo.jpg").
+	Place(goimage.Open("logo.png"), "bottom-right", 16, 16, 70)
 if err := img.Err(); err != nil {
 	log.Fatal(err)
 }
@@ -40,7 +40,7 @@ if err := img.ToPNG().Save("watermarked.png"); err != nil {
 ## Data URI from bytes
 
 ```go
-img := goimage.Create(1, 1).Fill("#ff00ff")
+img := goimage.New(1, 1).Fill("#ff00ff")
 enc := img.ToPNG()
 if err := enc.Err(); err != nil {
 	log.Fatal(err)
@@ -48,10 +48,10 @@ if err := enc.Err(); err != nil {
 fmt.Println(enc.ToDataURI())
 ```
 
-## Read Base64, write WebP
+## Decode bytes, write WebP
 
 ```go
-img := goimage.Read(base64.StdEncoding.EncodeToString(pngBytes)).
+img := goimage.DecodeBytes(pngBytes).
 	Scale(128, 0)
 if err := img.Err(); err != nil {
 	log.Fatal(err)
@@ -67,7 +67,7 @@ if err := img.ToWebP().Save("out.webp"); err != nil {
 anim := goimage.Animate(func(a *goimage.Animation) {
 	a.SetLoops(0)
 	for i := 0; i < 8; i++ {
-		frame := goimage.Create(64, 64).Fill("#111827")
+		frame := goimage.New(64, 64).Fill("#111827")
 		frame.DrawCircle(8+i*6, 32, func(d *goimage.Drawable) {
 			d.SetRadius(6).SetBackground("#38bdf8")
 		})
@@ -85,7 +85,7 @@ if err := anim.ToGIF().Save("dot.gif"); err != nil {
 ## Rotate and flatten for JPEG
 
 ```go
-img := goimage.Read("photo.jpg").
+img := goimage.Open("photo.jpg").
 	Rotate(45, "#ffffff").
 	SetBlendingColor("#ffffff")
 if err := img.Err(); err != nil {

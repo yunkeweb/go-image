@@ -34,7 +34,7 @@ func (img *Image) Flop() *Image {
 	})
 }
 
-// Rotate turns the image counter-clockwise by angle degrees (PHP GD imagerotate).
+// Rotate turns the image counter-clockwise by angle degrees.
 func (img *Image) Rotate(angle float64, background any) *Image {
 	if img.fail() {
 		return img
@@ -72,7 +72,7 @@ func (img *Image) Orient() *Image {
 	return img
 }
 
-// Orientate is the Intervention Image v2 alias of Orient.
+// Orientate is an alias of Orient.
 func (img *Image) Orientate() *Image { return img.Orient() }
 
 func (img *Image) markOrientationNormal() {

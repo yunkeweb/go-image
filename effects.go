@@ -32,7 +32,7 @@ func (img *Image) Brightness(level int) *Image {
 }
 
 func (img *Image) Contrast(level int) *Image {
-	// PHP GD IMG_FILTER_CONTRAST: factor around (100-level)/100 with a tan curve.
+	// Contrast uses a tangent curve around (100-level)/100.
 	c := clampInt(level, -100, 100)
 	factor := (259.0 * (float64(c) + 255)) / (255 * (259 - float64(c)))
 	return img.mapPixels(func(px color.NRGBA) color.NRGBA {

@@ -8,8 +8,7 @@ import (
 	"strings"
 )
 
-// Color is an 8-bit-per-channel sRGB color with alpha, matching PHP
-// Intervention\Image\Colors\Rgb\Color (alpha 0–255, 255 = opaque).
+// Color is an 8-bit-per-channel sRGB color with alpha (255 = opaque).
 type Color struct {
 	R, G, B, A uint8
 }

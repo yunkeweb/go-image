@@ -1,6 +1,6 @@
 # Encoding
 
-Binary output matching PHP `EncodedImage`.
+Encoded binary output plus a media type.
 
 ## Signatures
 
@@ -56,7 +56,7 @@ GIF encoding keeps `DisposalNone` for opaque full-canvas frames and uses `Dispos
 ## Example
 
 ```go
-img := goimage.Create(32, 32).Fill("blue")
+img := goimage.New(32, 32).Fill("blue")
 enc := img.ToJPEG()       // quality 80
 enc = img.ToJPEG(95)      // quality 95
 if err := enc.Err(); err != nil {

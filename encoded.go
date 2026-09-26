@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-// EncodedImage is encoded binary output, matching PHP EncodedImage.
+// EncodedImage is encoded binary output plus a media type.
 type EncodedImage struct {
 	Data      []byte
 	MediaType string

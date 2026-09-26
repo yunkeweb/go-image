@@ -1,6 +1,6 @@
 # 颜色
 
-每通道 8 位的 sRGB 颜色。Alpha `255` 为不透明，与 PHP RGB 颜色一致。
+每通道 8 位的 sRGB 颜色。Alpha `255` 为不透明。
 
 ## 签名
 
@@ -49,5 +49,5 @@ if err != nil {
 h, s, l := c.HSL()
 log.Println(c.ToHex("#"), h, s, l)
 
-img := goimage.Create(4, 4).Fill("tomato")
+img := goimage.New(4, 4).Fill("tomato")
 ```

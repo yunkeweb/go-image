@@ -1,6 +1,6 @@
 package goimage
 
-// htmlColorNames mirrors Intervention Image HtmlColornameDecoder (CSS Level 3).
+// htmlColorNames maps CSS Level 3 color names to hex values.
 var htmlColorNames = map[string]string{
 	"lightsalmon":          "#ffa07a",
 	"salmon":               "#fa8072",

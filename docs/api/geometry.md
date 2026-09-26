@@ -1,6 +1,6 @@
 # Geometry
 
-Size transforms matching PHP `RectangleResizer` and related modifiers.
+Size transforms: resize, cover, contain, crop, pad, trim.
 
 ## Signatures
 
@@ -23,8 +23,8 @@ func (img *Image) Trim(tolerance int) *Image
 
 | Name | Notes |
 |------|-------|
-| `width`, `height` | `0` means unspecified (PHP `null`). Both `0` returns delayed `ErrInvalidDimensions` (no divide-by-zero) |
-| `position` | 9-point pivot; default `center` for Cover, `top-left` where PHP uses that default |
+| `width`, `height` | `0` means unspecified (keep aspect ratio). Both `0` returns delayed `ErrInvalidDimensions` |
+| `position` | 9-point pivot; default `center` for Cover, `top-left` for Crop / ResizeCanvas |
 | `background` | Color for new canvas pixels (`Contain`, `Pad`, `Crop`, `ResizeCanvas`) |
 | `offsetX`, `offsetY` | Crop origin shift after pivot |
 | `tolerance` | `Trim` color distance 0–100 against the corner pixel |
@@ -48,7 +48,7 @@ Resampling uses Catmull-Rom (`golang.org/x/image/draw`).
 ## Example
 
 ```go
-img := goimage.Read("photo.jpg").
+img := goimage.Open("photo.jpg").
     Cover(400, 300, "center").
     Pad(420, 320, "#000000", "center")
 if err := img.Err(); err != nil {

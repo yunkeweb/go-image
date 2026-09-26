@@ -35,7 +35,7 @@ func (img *Image) Orientate() *Image
 | `Blur` | `amount` | 盒式模糊半径；`<= 0` 为空操作 |
 | `Sharpen` | `amount` | 锐化强度；`<= 0` 为空操作 |
 | `ReduceColors` | `limit` | 中位切分调色板大小 |
-| `Rotate` | `angle` | 角度，**逆时针**（PHP GD） |
+| `Rotate` | `angle` | 角度，**逆时针** |
 | `Rotate` | `background` | 新角落填充色 |
 | `Flip` | | 垂直翻转 |
 | `Flop` | | 水平翻转 |
@@ -44,7 +44,7 @@ func (img *Image) Orientate() *Image
 ## 示例
 
 ```go
-img := goimage.Read("photo.jpg").
+img := goimage.Open("photo.jpg").
     Orient().
     Greyscale().
     Brightness(10).

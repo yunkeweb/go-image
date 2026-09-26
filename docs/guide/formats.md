@@ -1,6 +1,6 @@
 # Formats
 
-Go uses a single NRGBA driver. There is no GD or Imagick backend.
+A single NRGBA backend over the Go standard library and `golang.org/x/image`.
 
 ## Decode / encode matrix
 

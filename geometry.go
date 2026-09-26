@@ -10,7 +10,7 @@ type Point struct {
 	X, Y int
 }
 
-// Size is a rectangle with an optional pivot, matching PHP SizeInterface.
+// Size is a rectangle with an optional 9-point pivot.
 type Size struct {
 	Width, Height int
 	Pivot         Point

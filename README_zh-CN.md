@@ -2,9 +2,9 @@
 
 [English](README.md) | [简体中文](README_zh-CN.md)
 
-面向 Go 的流式图像处理库。本模块将 PHP 的 [Intervention Image](https://github.com/Intervention/image) 以惯用 Go 风格移植为 `github.com/yunkeweb/go-image`。
+面向 Go 的流式图像处理库。包级函数、Functional Options 与 `Image` 上的延迟错误，让链式调用短、并发友好。
 
-仅依赖 Go 标准库与官方 `golang.org/x/image`。PHP 异常对应 `Image` 上的延迟错误，通过 `Err()` 读取。
+仅依赖 Go 标准库与官方 `golang.org/x/image`。无 CGO。
 
 ```go
 package main
@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	img := goimage.New().Read("photo.jpg").
+	img := goimage.Open("photo.jpg").
 		Cover(400, 300, "center").
 		Greyscale().
 		Sharpen(10)
@@ -39,46 +39,65 @@ go get github.com/yunkeweb/go-image
 
 ## 功能
 
-- **读取** 文件路径、`[]byte`、`io.Reader`、Data URI、Base64 以及 `image.Image`
-- **创建** 画布，**制作** 多帧 GIF
+- **Open / Decode / New**：路径、`io.Reader`、`[]byte`、`image.Image` 或空白画布
+- **Animate** 多帧 GIF
 - **几何**：Resize、Scale、Cover、Contain、Pad、Crop、Trim、ResizeCanvas
 - **效果**：Greyscale、Invert、Brightness、Contrast、Gamma、Colorize、Blur、Sharpen、Pixelate、Rotate、Flip、Flop、Orient
 - **绘制**：像素、矩形、椭圆、圆、多边形、直线、贝塞尔、洪水填充
 - **Place** 水印：九点对齐与透明度
 - **文字**：TTF/OTF 文件或内置点阵字体
 - **编码**：JPEG、PNG、GIF（含动画）、WebP（无损 VP8L）、BMP、TIFF
+- **sync.Pool** 回收 NRGBA 缓冲区，超过 16 MiB 的大图不回池
+
+## 包级 API
+
+```go
+canvas := goimage.New(800, 600)
+photo := goimage.Open("input.png")
+fromReader := goimage.Decode(r)
+fromBytes := goimage.DecodeBytes(raw)
+fromStd := goimage.FromImage(stdImg)
+
+img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true))
+```
+
+| 函数 | 输入 |
+|------|------|
+| `Open` | 文件系统路径（`string`） |
+| `Decode` | `io.Reader` |
+| `DecodeBytes` | 已编码的 `[]byte` |
+| `DecodeDataURI` | `data:image/...;base64,...` |
+| `FromImage` | `image.Image` |
+| `New` | 画布宽高 |
+| `Animate` | 帧构建回调 |
+
+Functional Options（`WithAutoOrientation`、`WithDecodeAnimation`、`WithBlendingColor`、`WithStrip`）作用于单次调用。多图共享配置时用 `NewManager`。
+
+```go
+mgr := goimage.NewManager(
+	goimage.WithAutoOrientation(true),
+	goimage.WithDecodeAnimation(true),
+	goimage.WithBlendingColor("ffffff"),
+)
+canvas := mgr.New(800, 600)
+photo := mgr.Open("input.png")
+anim := mgr.Animate(func(a *goimage.Animation) {
+	a.AddFile("frame1.png", 0.1).AddFile("frame2.png", 0.1).SetLoops(0)
+})
+```
 
 ## 延迟错误
 
 修改器返回 `*Image`，便于链式调用。第一次失败会被保存，后续调用成为空操作，直到你检查错误：
 
 ```go
-img := goimage.Read("missing.jpg").Cover(200, 200, "center")
+img := goimage.Open("missing.jpg").Cover(200, 200, "center")
 if err := img.Err(); err != nil {
 	log.Fatal(err)
 }
 ```
 
 编码方法返回 `EncodedImage`。请检查 `enc.Err()` 或 `Save` 返回的 `error`。
-
-## Manager
-
-```go
-mgr := goimage.New(
-	goimage.WithAutoOrientation(true),
-	goimage.WithDecodeAnimation(true),
-	goimage.WithBlendingColor("ffffff"),
-	goimage.WithStrip(false),
-)
-
-canvas := mgr.Create(800, 600)
-photo := mgr.Read("input.png")
-anim := mgr.Animate(func(a *goimage.Animation) {
-	a.Add("frame1.png", 0.1).Add("frame2.png", 0.1).SetLoops(0)
-})
-```
-
-包级 `Create`、`Read`、`Animate` 使用默认 Manager。
 
 ## 格式
 
@@ -92,7 +111,7 @@ anim := mgr.Animate(func(a *goimage.Animation) {
 | TIFF | 支持 | 支持 |
 | AVIF / HEIC / JPEG 2000 | 延迟 `ErrNotSupported` | 延迟 `ErrNotSupported` |
 
-宽度或高度为 `0` 表示“未指定”，对应 PHP 缩放参数里的 `null`。
+缩放时宽度或高度为 `0` 表示“未指定”（保持宽高比）。两边都为 `0` 时返回 `ErrInvalidDimensions`。
 
 ## 文档
 
@@ -113,4 +132,4 @@ MIT。详见 [LICENSE](LICENSE)。
 
 ## 致谢
 
-本项目是 [Oliver Vogel](https://intervention.io) 所著 [Intervention Image](https://github.com/Intervention/image) 的 Go 语言移植，原项目采用 MIT 许可证。感谢 Oliver Vogel 与 Intervention Image 的贡献者。
+感谢 [Oliver Vogel](https://intervention.io) 与 [Intervention Image](https://github.com/Intervention/image) 的贡献者。他们的 MIT 作品为本库的功能范围提供了参考。

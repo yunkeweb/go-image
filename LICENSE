@@ -3,11 +3,9 @@ The MIT License (MIT)
 Copyright (c) 2026 yunkeweb
 Copyright (c) 2013-present Oliver Vogel
 
-This software is a Go language port of Intervention Image
-(https://github.com/Intervention/image), originally created and maintained
-by Oliver Vogel (https://intervention.io). The original PHP library is
-licensed under the MIT License. This port retains that license and
-acknowledges the original authors and contributors.
+This software acknowledges Intervention Image
+(https://github.com/Intervention/image) by Oliver Vogel
+(https://intervention.io). That work is licensed under the MIT License.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in

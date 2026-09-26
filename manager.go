@@ -1,50 +1,70 @@
 package goimage
 
 import (
+	"image"
 	"image/color"
 	"image/gif"
+	"io"
 )
 
-// Manager is the PHP ImageManager equivalent. Go uses a single stdlib driver.
+// Manager holds a Config reused across Open, Decode, and New.
 type Manager struct {
 	cfg Config
-}
-
-// New constructs a manager. Options map to PHP Config constructor flags.
-func New(opts ...Option) *Manager {
-	cfg := defaultConfig()
-	for _, o := range opts {
-		o(&cfg)
-	}
-	return &Manager{cfg: cfg}
 }
 
 func (m *Manager) Driver() string { return "go" }
 
 func (m *Manager) Config() Config { return m.cfg }
 
-// Create a transparent canvas of the given size.
-func (m *Manager) Create(width, height int) *Image {
+func newCanvas(width, height int, cfg Config) *Image {
 	if width < 1 || height < 1 {
 		return failed(wrap(ErrGeometry, "width and height must be >= 1"))
 	}
-	img := newImage([]Frame{{Img: newBlank(width, height, ColorTransparent)}}, m.cfg)
+	img := newImage([]Frame{{Img: newBlank(width, height, ColorTransparent)}}, cfg)
 	img.origin = Origin{MediaType: "application/octet-stream"}
 	return img
 }
 
-// Read decodes a path, []byte, io.Reader, data URI, base64 string, or *Image.
-func (m *Manager) Read(input any) *Image {
-	img, err := decodeInput(input, m.cfg)
-	if err != nil {
-		return failed(err)
-	}
-	return img
+// New creates a transparent canvas using the manager's config.
+func (m *Manager) New(width, height int) *Image {
+	return newCanvas(width, height, m.cfg)
 }
 
-// Animate builds a multi-frame image.
+// Create is an alias of Manager.New.
+func (m *Manager) Create(width, height int) *Image { return m.New(width, height) }
+
+// Open decodes an image from a filesystem path.
+func (m *Manager) Open(path string) *Image {
+	return result(decodeFile(path, m.cfg))
+}
+
+// Decode decodes an image from r.
+func (m *Manager) Decode(r io.Reader) *Image {
+	return result(decodeReader(r, m.cfg))
+}
+
+// DecodeBytes decodes an image from encoded bytes.
+func (m *Manager) DecodeBytes(data []byte) *Image {
+	return result(decodeBytes(data, "", m.cfg))
+}
+
+// DecodeDataURI decodes a data URI.
+func (m *Manager) DecodeDataURI(uri string) *Image {
+	return result(decodeDataURI(uri, m.cfg))
+}
+
+// FromImage wraps a standard-library image.Image.
+func (m *Manager) FromImage(src image.Image) *Image {
+	return result(fromStdImage(src, m.cfg))
+}
+
+// Animate builds a multi-frame image using the manager's config.
 func (m *Manager) Animate(init func(*Animation)) *Image {
-	a := &Animation{mgr: m}
+	return buildAnimation(m.cfg, init)
+}
+
+func buildAnimation(cfg Config, init func(*Animation)) *Image {
+	a := &Animation{cfg: cfg}
 	if init != nil {
 		init(a)
 	}
@@ -54,37 +74,22 @@ func (m *Manager) Animate(init func(*Animation)) *Image {
 	if len(a.frames) == 0 {
 		return failed(wrap(ErrAnimation, "animation has no frames"))
 	}
-	img := newImage(a.frames, m.cfg)
+	img := newImage(a.frames, cfg)
 	img.loops = a.loops
 	img.origin = Origin{MediaType: "image/gif"}
 	return img
 }
 
-// Animation is the PHP animation callback builder.
+// Animation collects frames for Animate.
 type Animation struct {
-	mgr    *Manager
+	cfg    Config
 	frames []Frame
 	loops  int
 	err    error
 }
 
-func (a *Animation) Add(input any, delaySeconds float64) *Animation {
-	if a.err != nil {
-		return a
-	}
-	img := a.mgr.Read(input)
-	if img.Err() != nil {
-		a.err = img.Err()
-		return a
-	}
-	for _, f := range img.frames {
-		f.Delay = delaySeconds
-		a.frames = append(a.frames, f.clone())
-	}
-	return a
-}
-
-func (a *Animation) AddImage(src *Image, delaySeconds float64) *Animation {
+// Add appends src as one or more frames with the given delay in seconds.
+func (a *Animation) Add(src *Image, delaySeconds float64) *Animation {
 	if a.err != nil {
 		return a
 	}
@@ -103,20 +108,30 @@ func (a *Animation) AddImage(src *Image, delaySeconds float64) *Animation {
 	return a
 }
 
+// AddImage is an alias of Add.
+func (a *Animation) AddImage(src *Image, delaySeconds float64) *Animation {
+	return a.Add(src, delaySeconds)
+}
+
+// AddFile decodes path and appends it as a frame.
+func (a *Animation) AddFile(path string, delaySeconds float64) *Animation {
+	if a.err != nil {
+		return a
+	}
+	img, err := decodeFile(path, a.cfg)
+	if err != nil {
+		a.err = err
+		return a
+	}
+	return a.Add(img, delaySeconds)
+}
+
 func (a *Animation) SetLoops(n int) *Animation {
 	a.loops = n
 	return a
 }
 
 func (a *Animation) Loops(n int) *Animation { return a.SetLoops(n) }
-
-var defaultManager = New()
-
-func Create(width, height int) *Image { return defaultManager.Create(width, height) }
-
-func Read(input any) *Image { return defaultManager.Read(input) }
-
-func Animate(init func(*Animation)) *Image { return defaultManager.Animate(init) }
 
 func imageFromGIF(g *gif.GIF, cfg Config, origin Origin) *Image {
 	if g == nil || len(g.Image) == 0 {

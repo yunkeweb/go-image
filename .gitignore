@@ -1,0 +1,32 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+
+# Test / coverage
+*.test
+*.out
+coverage.html
+
+# Go workspace
+vendor/
+
+# Node (VitePress)
+node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Local migration instructions
+GROK.md
+MIGRATION_CHECKLIST.md

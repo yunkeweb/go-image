@@ -49,6 +49,7 @@ Requires Go 1.22+.
 - **Encode** JPEG, PNG, GIF (including animation), WebP (lossless VP8L), BMP, TIFF; `WriteTo` for HTTP
 - **Clone** deep-copies pixels for concurrent pipelines (`Image` is not concurrent-safe)
 - **sync.Pool** for NRGBA buffers, with a 16 MiB put cap for large images
+- **Subpackages**: `modifier/` (geometry, effects, drawing, GIF), `encoder/` (codecs), `internal/` (pool and color tables). Callers still import only `github.com/yunkeweb/go-image`
 
 ## Package-level API
 

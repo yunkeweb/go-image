@@ -1,8 +1,8 @@
-package goimage
+package errs
 
 import "fmt"
 
-// Sentinel errors for delayed Image.Err() and EncodedImage.Err().
+// Sentinel errors shared by the root package, modifier, and encoder.
 var (
 	ErrRuntime           = fmt.Errorf("runtime error")
 	ErrDecoder           = fmt.Errorf("decoder error")
@@ -18,20 +18,20 @@ var (
 	ErrDriver            = fmt.Errorf("driver error")
 )
 
-type imageError struct {
-	kind error
-	msg  string
+type Error struct {
+	Kind error
+	Msg  string
 }
 
-func (e *imageError) Error() string {
-	if e.msg == "" {
-		return e.kind.Error()
+func (e *Error) Error() string {
+	if e.Msg == "" {
+		return e.Kind.Error()
 	}
-	return e.msg
+	return e.Msg
 }
 
-func (e *imageError) Unwrap() error { return e.kind }
+func (e *Error) Unwrap() error { return e.Kind }
 
-func wrap(kind error, format string, args ...any) error {
-	return &imageError{kind: kind, msg: fmt.Sprintf(format, args...)}
+func Wrap(kind error, format string, args ...any) error {
+	return &Error{Kind: kind, Msg: fmt.Sprintf(format, args...)}
 }

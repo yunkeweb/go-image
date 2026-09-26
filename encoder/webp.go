@@ -1,16 +1,16 @@
-package goimage
+package encoder
 
 import (
 	"encoding/binary"
 	"image"
+
+	"github.com/yunkeweb/go-image/internal/errs"
 )
 
-// encodeWebP writes a lossless VP8L bitstream (pure Go, no CGO).
-func encodeWebP(img *Image, o EncodeOptions) ([]byte, error) {
-	_ = o
-	src := img.primary()
+// EncodeWebP writes a lossless VP8L bitstream (pure Go, no CGO).
+func EncodeWebP(src *image.NRGBA) ([]byte, error) {
 	if src == nil {
-		return nil, wrap(ErrEncoder, "empty image")
+		return nil, errs.Wrap(errs.ErrEncoder, "empty image")
 	}
 	payload := encodeVP8L(src)
 	return wrapRIFFWebP(payload), nil

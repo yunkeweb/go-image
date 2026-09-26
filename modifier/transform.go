@@ -1,108 +1,63 @@
-package goimage
+package modifier
 
 import (
 	"image"
 	"image/color"
 	"math"
+
+	"github.com/yunkeweb/go-image/internal/pool"
 )
 
-func (img *Image) Flip() *Image {
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
-		b := n.Bounds()
-		dst := acquireNRGBARect(b)
-		for y := b.Min.Y; y < b.Max.Y; y++ {
-			sy := b.Max.Y - 1 - (y - b.Min.Y)
-			for x := b.Min.X; x < b.Max.X; x++ {
-				dst.SetNRGBA(x, y, n.NRGBAAt(x, sy))
-			}
+func Flip(n *image.NRGBA) *image.NRGBA {
+	b := n.Bounds()
+	dst := pool.AcquireRect(b)
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		sy := b.Max.Y - 1 - (y - b.Min.Y)
+		for x := b.Min.X; x < b.Max.X; x++ {
+			dst.SetNRGBA(x, y, n.NRGBAAt(x, sy))
 		}
-		return dst, nil
-	})
+	}
+	return dst
 }
 
-func (img *Image) Flop() *Image {
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
-		b := n.Bounds()
-		dst := acquireNRGBARect(b)
-		for y := b.Min.Y; y < b.Max.Y; y++ {
-			for x := b.Min.X; x < b.Max.X; x++ {
-				sx := b.Max.X - 1 - (x - b.Min.X)
-				dst.SetNRGBA(x, y, n.NRGBAAt(sx, y))
-			}
+func Flop(n *image.NRGBA) *image.NRGBA {
+	b := n.Bounds()
+	dst := pool.AcquireRect(b)
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			sx := b.Max.X - 1 - (x - b.Min.X)
+			dst.SetNRGBA(x, y, n.NRGBAAt(sx, y))
 		}
-		return dst, nil
-	})
+	}
+	return dst
 }
 
-// Rotate turns the image counter-clockwise by angle degrees.
-func (img *Image) Rotate(angle float64, background any) *Image {
-	if img.fail() {
-		return img
+func Rotate(src *image.NRGBA, angleDeg float64, bg color.NRGBA) *image.NRGBA {
+	angleDeg = math.Mod(angleDeg, 360)
+	if angleDeg < 0 {
+		angleDeg += 360
 	}
-	bg, err := ParseColor(background)
-	if err != nil {
-		bg = ColorWhite
+	if angleDeg == 0 {
+		return pool.Clone(src)
 	}
-	angle = math.Mod(angle, 360)
-	if angle < 0 {
-		angle += 360
-	}
-	if angle == 0 {
-		return img
-	}
-	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return rotateNRGBA(n, angle, bg.NRGBA()), nil
-	})
-}
-
-func (img *Image) Orient() *Image {
-	if img.fail() {
-		return img
-	}
-	v := img.ExifQuery("Orientation")
-	orient := 1
-	switch t := v.(type) {
-	case int:
-		orient = t
-	case float64:
-		orient = int(t)
-	}
-	applyOrientation(img, orient)
-	img.markOrientationNormal()
-	return img
-}
-
-// Orientate is an alias of Orient.
-func (img *Image) Orientate() *Image { return img.Orient() }
-
-func (img *Image) markOrientationNormal() {
-	if img == nil {
-		return
-	}
-	if img.exif == nil {
-		img.exif = map[string]any{}
-	}
-	img.exif["Orientation"] = 1
-	img.exif["IFD0.Orientation"] = 1
+	return rotateNRGBA(src, angleDeg, bg)
 }
 
 func rotateNRGBA(src *image.NRGBA, angleDeg float64, bg color.NRGBA) *image.NRGBA {
 	b := src.Bounds()
 	w, h := b.Dx(), b.Dy()
 	if almost90(angleDeg) {
-		return rotate90(src) // 90 CCW
+		return rotate90(src)
 	}
 	if almost90(angleDeg - 180) {
 		return rotate180(src)
 	}
 	if almost90(angleDeg - 270) {
-		return rotate270(src) // 270 CCW = 90 CW
+		return rotate270(src)
 	}
 	rad := angleDeg * math.Pi / 180
-	// CCW rotation of the image: destination (x,y) samples source at R_CW = R_CCW^{-1}
 	cos := math.Cos(rad)
 	sin := math.Sin(rad)
-	// Bounding box of rotated corners
 	cx := float64(w) / 2
 	cy := float64(h) / 2
 	corners := [][2]float64{
@@ -136,14 +91,13 @@ func rotateNRGBA(src *image.NRGBA, angleDeg float64, bg color.NRGBA) *image.NRGB
 	if nh < 1 {
 		nh = 1
 	}
-	dst := newBlank(nw, nh, colorFromNRGBA(bg))
+	dst := pool.Blank(nw, nh, bg)
 	ncx := float64(nw) / 2
 	ncy := float64(nh) / 2
 	for y := 0; y < nh; y++ {
 		for x := 0; x < nw; x++ {
 			dx := float64(x) + 0.5 - ncx
 			dy := float64(y) + 0.5 - ncy
-			// inverse CCW = CW
 			sx := dx*cos - dy*sin + cx
 			sy := dx*sin + dy*cos + cy
 			dst.SetNRGBA(x, y, sampleBilinear(src, sx, sy, bg))
@@ -163,7 +117,7 @@ func almost90(v float64) bool {
 func rotate90(src *image.NRGBA) *image.NRGBA {
 	b := src.Bounds()
 	w, h := b.Dx(), b.Dy()
-	dst := acquireNRGBA(h, w)
+	dst := pool.Acquire(h, w)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			dst.SetNRGBA(y, w-1-x, src.NRGBAAt(b.Min.X+x, b.Min.Y+y))
@@ -175,7 +129,7 @@ func rotate90(src *image.NRGBA) *image.NRGBA {
 func rotate180(src *image.NRGBA) *image.NRGBA {
 	b := src.Bounds()
 	w, h := b.Dx(), b.Dy()
-	dst := acquireNRGBA(w, h)
+	dst := pool.Acquire(w, h)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			dst.SetNRGBA(w-1-x, h-1-y, src.NRGBAAt(b.Min.X+x, b.Min.Y+y))
@@ -187,7 +141,7 @@ func rotate180(src *image.NRGBA) *image.NRGBA {
 func rotate270(src *image.NRGBA) *image.NRGBA {
 	b := src.Bounds()
 	w, h := b.Dx(), b.Dy()
-	dst := acquireNRGBA(h, w)
+	dst := pool.Acquire(h, w)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			dst.SetNRGBA(h-1-y, x, src.NRGBAAt(b.Min.X+x, b.Min.Y+y))
@@ -235,4 +189,41 @@ func lerpU8(a, b uint8, t float64) uint8 {
 		return 255
 	}
 	return uint8(math.Round(v))
+}
+
+// OrientPixels applies EXIF orientation 2–8. Orientation 1 is a no-op.
+func OrientPixels(n *image.NRGBA, orient int) *image.NRGBA {
+	switch orient {
+	case 2:
+		return Flop(n)
+	case 3:
+		return Rotate(n, 180, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+	case 4:
+		r := Rotate(n, 180, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+		out := Flop(r)
+		if r != n {
+			pool.Release(r)
+		}
+		return out
+	case 5:
+		r := Rotate(n, 270, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+		out := Flop(r)
+		if r != n {
+			pool.Release(r)
+		}
+		return out
+	case 6:
+		return Rotate(n, 270, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+	case 7:
+		r := Rotate(n, 90, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+		out := Flop(r)
+		if r != n {
+			pool.Release(r)
+		}
+		return out
+	case 8:
+		return Rotate(n, 90, color.NRGBA{R: 255, G: 255, B: 255, A: 255})
+	default:
+		return n
+	}
 }

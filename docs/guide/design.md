@@ -59,6 +59,16 @@ go func() { _ = base.Clone().Greyscale().ToPNG().Save("b.png") }()
 
 Discarded NRGBA buffers go back to `sync.Pool` when their capacity is at most 16 MiB, so large images do not pin huge slices for later small work.
 
+## Package layout
+
+Callers import one module path:
+
+```go
+import goimage "github.com/yunkeweb/go-image"
+```
+
+The public API lives in the root package (`image.go`, `options.go`, `api.go`). Algorithms sit in `modifier/` (geometry, effects, drawing, GIF layout). Codecs sit in `encoder/` (JPEG, PNG, GIF, WebP, BMP, TIFF). Buffer reuse and color-name tables live under `internal/` and cannot be imported by other modules.
+
 ## Geometry conventions
 
 - `Resize(400)` / `Scale(400)` omit height and keep aspect ratio.

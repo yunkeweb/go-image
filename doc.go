@@ -1,5 +1,8 @@
 // Package goimage is a fluent image processing library for Go.
 //
+// Algorithms live in the modifier subpackage, codecs in encoder, and
+// buffer reuse under internal. Callers import this root package only.
+//
 // It creates, decodes, transforms, draws on, and encodes raster images using
 // the Go standard library and golang.org/x/image. The first failure in a
 // chain is stored on the Image value and retrieved with Image.Err().

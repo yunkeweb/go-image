@@ -59,6 +59,16 @@ go func() { _ = base.Clone().Greyscale().ToPNG().Save("b.png") }()
 
 抛弃的 NRGBA 缓冲在容量不超过 16 MiB 时回到 `sync.Pool`，避免大图把超大 slice 长期留在池中。
 
+## 目录结构
+
+调用方只导入一个模块路径：
+
+```go
+import goimage "github.com/yunkeweb/go-image"
+```
+
+对外 API 在根包（`image.go`、`options.go`、`api.go`）。算法在 `modifier/`（几何、滤镜、绘制、GIF 帧布局）。编解码在 `encoder/`（JPEG、PNG、GIF、WebP、BMP、TIFF）。缓冲池与颜色名表在 `internal/` 下，外部模块无法导入。
+
 ## 几何约定
 
 - `Resize(400)` / `Scale(400)` 省略高度，按原图比例计算。

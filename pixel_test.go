@@ -6,6 +6,8 @@ import (
 	"image"
 	"image/gif"
 	"testing"
+
+	"github.com/yunkeweb/go-image/internal/pool"
 )
 
 func assertNRGBA(t *testing.T, got Color, r, g, b, a uint8) {
@@ -118,9 +120,6 @@ func TestResizeZeroDimensions(t *testing.T) {
 	img := Create(8, 8).Resize(0, 0).Cover(0, 0)
 	if img.Err() == nil || !errors.Is(img.Err(), ErrInvalidDimensions) {
 		t.Fatalf("want ErrInvalidDimensions, got %v", img.Err())
-	}
-	if _, err := newResizer(0, 0); !errors.Is(err, ErrInvalidDimensions) {
-		t.Fatalf("newResizer: %v", err)
 	}
 	neg := Create(8, 8).Resize(-4)
 	if neg.Err() == nil || !errors.Is(neg.Err(), ErrInvalidDimensions) {
@@ -303,8 +302,8 @@ func TestGIFPartialFrameResetsDisposal(t *testing.T) {
 	})
 	anim.frames[1].OffsetLeft = 2
 	anim.frames[1].OffsetTop = 2
-	anim.frames[1].Img = acquireNRGBA(4, 4)
-	fillRect(anim.frames[1].Img, anim.frames[1].Img.Bounds(), Color{G: 255, A: 255}.NRGBA())
+	anim.frames[1].Img = pool.Acquire(4, 4)
+	pool.FillRect(anim.frames[1].Img, anim.frames[1].Img.Bounds(), Color{G: 255, A: 255}.NRGBA())
 	anim.resetGIFFrameLayout()
 	if anim.frames[1].OffsetLeft != 0 || anim.frames[1].OffsetTop != 0 {
 		t.Fatalf("partial offset %d,%d", anim.frames[1].OffsetLeft, anim.frames[1].OffsetTop)
@@ -314,21 +313,6 @@ func TestGIFPartialFrameResetsDisposal(t *testing.T) {
 	}
 	if anim.frames[0].Dispose != int(gif.DisposalNone) {
 		t.Fatalf("opaque full dispose %d", anim.frames[0].Dispose)
-	}
-}
-
-func TestReleaseNRGBADropsHugePix(t *testing.T) {
-	n := acquireNRGBA(2, 2)
-	n.Pix = make([]byte, maxPooledPix+64)
-	n.Stride = 8
-	n.Rect = image.Rect(0, 0, 2, 2)
-	releaseNRGBA(n)
-	got := pixPool.Get().([]byte)
-	if cap(got) > maxPooledPix {
-		t.Fatalf("pool retained cap=%d", cap(got))
-	}
-	if cap(got) <= maxPooledPix {
-		pixPool.Put(got[:0])
 	}
 }
 

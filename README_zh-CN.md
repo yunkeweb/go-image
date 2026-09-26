@@ -49,6 +49,7 @@ go get github.com/yunkeweb/go-image
 - **编码**：JPEG、PNG、GIF（含动画）、WebP（无损 VP8L）、BMP、TIFF；`WriteTo` 可直写 HTTP
 - **Clone** 深拷贝像素，供并发流水线使用（`Image` 非并发安全）
 - **sync.Pool** 回收 NRGBA 缓冲区，超过 16 MiB 的大图不回池
+- **分包**：`modifier/`（几何、滤镜、绘制、GIF）、`encoder/`（编解码）、`internal/`（缓冲池与颜色表）。调用方仍只需 `import "github.com/yunkeweb/go-image"`
 
 ## 包级 API
 

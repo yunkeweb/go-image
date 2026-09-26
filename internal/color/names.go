@@ -1,7 +1,7 @@
-package goimage
+package intcolor
 
-// htmlColorNames maps CSS Level 3 color names to hex values.
-var htmlColorNames = map[string]string{
+// HTMLNames maps CSS Level 3 color names to hex values.
+var HTMLNames = map[string]string{
 	"lightsalmon":          "#ffa07a",
 	"salmon":               "#fa8072",
 	"darksalmon":           "#e9967a",

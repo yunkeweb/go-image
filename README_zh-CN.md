@@ -17,7 +17,7 @@ import (
 
 func main() {
 	img := goimage.Open("photo.jpg").
-		Cover(400, 300, "center").
+		Cover(400, 300).
 		Greyscale().
 		Sharpen(10)
 	if err := img.Err(); err != nil {
@@ -41,7 +41,7 @@ go get github.com/yunkeweb/go-image
 
 - **Open / Decode / New**：路径、`io.Reader`、`[]byte`、`image.Image` 或空白画布
 - **Animate** 多帧 GIF
-- **几何**：Resize、Scale、Cover、Contain、Pad、Crop、Trim、ResizeCanvas
+- **几何**：`Resize(400)` 或 `Resize(400, 300)`；Cover / Crop / Pad 使用 `WithAnchor`
 - **效果**：Greyscale、Invert、Brightness、Contrast、Gamma、Colorize、Blur、Sharpen、Pixelate、Rotate、Flip、Flop、Orient
 - **绘制**：像素、矩形、椭圆、圆、多边形、直线、贝塞尔、洪水填充
 - **Place** 水印：九点对齐与透明度
@@ -92,7 +92,7 @@ anim := mgr.Animate(func(a *goimage.Animation) {
 修改器返回 `*Image`，便于链式调用。第一次失败会被保存，后续调用成为空操作，直到你检查错误：
 
 ```go
-img := goimage.Open("missing.jpg").Cover(200, 200, "center")
+img := goimage.Open("missing.jpg").Cover(200, 200)
 if err := img.Err(); err != nil {
 	log.Fatal(err)
 }
@@ -118,7 +118,7 @@ _, _ = enc.WriteTo(w) // http.ResponseWriter、Gin 或任意 io.Writer
 | TIFF | 支持 | 支持 |
 | AVIF / HEIC / JPEG 2000 | 延迟 `ErrNotSupported` | 延迟 `ErrNotSupported` |
 
-缩放时宽度或高度为 `0` 表示“未指定”（保持宽高比）。两边都为 `0` 时返回 `ErrInvalidDimensions`。
+`Resize(400)` 按原图比例计算高度。`Resize(400, 300)` 同时指定宽高。零或负数返回延迟错误 `ErrInvalidDimensions`。Cover、Crop、Pad 使用 `WithAnchor` / `WithBackground` / `WithOffset`。
 
 ## 文档
 

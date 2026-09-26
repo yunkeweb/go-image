@@ -20,12 +20,14 @@ func resample(src *image.NRGBA, srcRect image.Rectangle, dw, dh int) *image.NRGB
 	return dst
 }
 
-// Resize stretches to width/height. A zero dimension keeps the original.
-func (img *Image) Resize(width, height int) *Image {
+// Resize stretches to width×height. Omit height to keep the original aspect
+// ratio: Resize(400) sets width 400 and computes height. Zero and negative
+// sizes yield delayed ErrInvalidDimensions.
+func (img *Image) Resize(width int, height ...int) *Image {
 	if img.fail() {
 		return img
 	}
-	r, err := newResizer(width, height)
+	r, err := sizeFromArgs(width, height)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -35,11 +37,11 @@ func (img *Image) Resize(width, height int) *Image {
 	})
 }
 
-func (img *Image) ResizeDown(width, height int) *Image {
+func (img *Image) ResizeDown(width int, height ...int) *Image {
 	if img.fail() {
 		return img
 	}
-	r, err := newResizer(width, height)
+	r, err := sizeFromArgs(width, height)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -49,11 +51,11 @@ func (img *Image) ResizeDown(width, height int) *Image {
 	})
 }
 
-func (img *Image) Scale(width, height int) *Image {
+func (img *Image) Scale(width int, height ...int) *Image {
 	if img.fail() {
 		return img
 	}
-	r, err := newResizer(width, height)
+	r, err := sizeFromArgs(width, height)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -63,11 +65,11 @@ func (img *Image) Scale(width, height int) *Image {
 	})
 }
 
-func (img *Image) ScaleDown(width, height int) *Image {
+func (img *Image) ScaleDown(width int, height ...int) *Image {
 	if img.fail() {
 		return img
 	}
-	r, err := newResizer(width, height)
+	r, err := sizeFromArgs(width, height)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -77,30 +79,24 @@ func (img *Image) ScaleDown(width, height int) *Image {
 	})
 }
 
-func (img *Image) Cover(width, height int, position ...string) *Image {
+func (img *Image) Cover(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	pos := "center"
-	if len(position) > 0 && position[0] != "" {
-		pos = position[0]
-	}
-	crop, resizeTo, err := coverSizes(img.Size(), width, height, pos, false)
+	cfg := applyGeometryOptions(geometrySettings{anchor: "center"}, opts)
+	crop, resizeTo, err := coverSizes(img.Size(), width, height, cfg.anchor, false)
 	if err != nil {
 		return img.setErr(err)
 	}
 	return img.applyCover(crop, resizeTo)
 }
 
-func (img *Image) CoverDown(width, height int, position ...string) *Image {
+func (img *Image) CoverDown(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	pos := "center"
-	if len(position) > 0 && position[0] != "" {
-		pos = position[0]
-	}
-	crop, _, err := coverSizes(img.Size(), width, height, pos, true)
+	cfg := applyGeometryOptions(geometrySettings{anchor: "center"}, opts)
+	crop, _, err := coverSizes(img.Size(), width, height, cfg.anchor, true)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -110,6 +106,11 @@ func (img *Image) CoverDown(width, height int, position ...string) *Image {
 	}
 	resizeTo := r.resizeDown(crop)
 	return img.applyCover(crop, resizeTo)
+}
+
+// Fit fills the box and crops overflow. It is an alias of Cover.
+func (img *Image) Fit(width, height int, opts ...GeometryOption) *Image {
+	return img.Cover(width, height, opts...)
 }
 
 func coverSizes(imagesize Size, width, height int, pos string, _ bool) (crop Size, resizeTo Size, err error) {
@@ -141,18 +142,12 @@ func (img *Image) applyCover(crop, resizeTo Size) *Image {
 	})
 }
 
-func (img *Image) Contain(width, height int, background any, position ...string) *Image {
+func (img *Image) Contain(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	pos := "center"
-	if len(position) > 0 && position[0] != "" {
-		pos = position[0]
-	}
-	bg, err := ParseColor(background)
-	if err != nil {
-		bg = ColorWhite
-	}
+	cfg := applyGeometryOptions(geometrySettings{anchor: "center", background: "ffffff"}, opts)
+	bg := mustColor(cfg.background)
 	r, err := newResizer(width, height)
 	if err != nil {
 		return img.setErr(err)
@@ -162,22 +157,16 @@ func (img *Image) Contain(width, height int, background any, position ...string)
 		return img.setErr(err)
 	}
 	canvas := Size{Width: width, Height: height}
-	crop = crop.AlignPivotTo(canvas, pos)
+	crop = crop.AlignPivotTo(canvas, cfg.anchor)
 	return img.placeOnCanvas(width, height, crop, bg)
 }
 
-func (img *Image) Pad(width, height int, background any, position ...string) *Image {
+func (img *Image) Pad(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	pos := "center"
-	if len(position) > 0 && position[0] != "" {
-		pos = position[0]
-	}
-	bg, err := ParseColor(background)
-	if err != nil {
-		bg = ColorWhite
-	}
+	cfg := applyGeometryOptions(geometrySettings{anchor: "center", background: "ffffff"}, opts)
+	bg := mustColor(cfg.background)
 	r, err := newResizer(width, height)
 	if err != nil {
 		return img.setErr(err)
@@ -187,7 +176,7 @@ func (img *Image) Pad(width, height int, background any, position ...string) *Im
 		return img.setErr(err)
 	}
 	canvas := Size{Width: width, Height: height}
-	crop = crop.AlignPivotTo(canvas, pos)
+	crop = crop.AlignPivotTo(canvas, cfg.anchor)
 	return img.placeOnCanvas(width, height, crop, bg)
 }
 
@@ -204,26 +193,20 @@ func (img *Image) placeOnCanvas(width, height int, crop Size, bg Color) *Image {
 	})
 }
 
-func (img *Image) Crop(width, height, offsetX, offsetY int, background any, position ...string) *Image {
+func (img *Image) Crop(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	if width == 0 && height == 0 {
-		return img.setErr(wrap(ErrInvalidDimensions, "width and height cannot both be 0"))
+	if width < 1 || height < 1 {
+		return img.setErr(invalidDimensions())
 	}
-	pos := "top-left"
-	if len(position) > 0 && position[0] != "" {
-		pos = position[0]
-	}
-	bg, err := ParseColor(background)
-	if err != nil {
-		bg = ColorWhite
-	}
+	cfg := applyGeometryOptions(geometrySettings{anchor: "top-left", background: "ffffff"}, opts)
+	bg := mustColor(cfg.background)
 	orig := img.Size()
-	crop := Size{Width: width, Height: height}.MovePivot(pos, 0, 0)
-	crop = crop.AlignPivotTo(orig, pos)
-	px := crop.Pivot.X + offsetX
-	py := crop.Pivot.Y + offsetY
+	crop := Size{Width: width, Height: height}.MovePivot(cfg.anchor, 0, 0)
+	crop = crop.AlignPivotTo(orig, cfg.anchor)
+	px := crop.Pivot.X + cfg.offsetX
+	py := crop.Pivot.Y + cfg.offsetY
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		dst := newBlank(width, height, bg)
 		srcRect := n.Bounds()
@@ -233,27 +216,18 @@ func (img *Image) Crop(width, height, offsetX, offsetY int, background any, posi
 	})
 }
 
-func (img *Image) ResizeCanvas(width, height int, background any, position ...string) *Image {
+func (img *Image) ResizeCanvas(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	pos := "center"
-	if len(position) > 0 && position[0] != "" {
-		pos = position[0]
+	if width < 1 || height < 1 {
+		return img.setErr(invalidDimensions())
 	}
-	if width == 0 {
-		width = img.Width()
-	}
-	if height == 0 {
-		height = img.Height()
-	}
-	bg, err := ParseColor(background)
-	if err != nil {
-		bg = ColorWhite
-	}
+	cfg := applyGeometryOptions(geometrySettings{anchor: "center", background: "ffffff"}, opts)
+	bg := mustColor(cfg.background)
 	orig := img.Size()
 	canvas := Size{Width: width, Height: height}
-	placed := orig.AlignPivotTo(canvas, pos)
+	placed := orig.AlignPivotTo(canvas, cfg.anchor)
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		dst := newBlank(width, height, bg)
 		pt := image.Pt(placed.Pivot.X, placed.Pivot.Y)
@@ -262,11 +236,11 @@ func (img *Image) ResizeCanvas(width, height int, background any, position ...st
 	})
 }
 
-func (img *Image) ResizeCanvasRelative(width, height int, background any, position ...string) *Image {
+func (img *Image) ResizeCanvasRelative(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	return img.ResizeCanvas(img.Width()+width, img.Height()+height, background, position...)
+	return img.ResizeCanvas(img.Width()+width, img.Height()+height, opts...)
 }
 
 func (img *Image) Trim(tolerance int) *Image {

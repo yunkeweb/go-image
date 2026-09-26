@@ -26,7 +26,7 @@
 // source, clone first:
 //
 //	base := goimage.Open("photo.jpg")
-//	go func() { _ = base.Clone().Cover(400, 300, "center").ToJPEG().Save("a.jpg") }()
+//	go func() { _ = base.Clone().Cover(400, 300).ToJPEG().Save("a.jpg") }()
 //	go func() { _ = base.Clone().Greyscale().ToPNG().Save("b.png") }()
 //
 // # HTTP
@@ -45,7 +45,7 @@
 // # Example
 //
 //	img := goimage.Open("photo.jpg").
-//		Cover(400, 300, "center").
+//		Cover(400, 300).
 //		Greyscale().
 //		Sharpen(10)
 //	if err := img.Err(); err != nil {

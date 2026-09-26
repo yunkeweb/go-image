@@ -16,7 +16,7 @@ func (img *Image) Err() error
 4. Sentinel kinds can be inspected with `errors.Is`.
 
 ```go
-img := goimage.Open("missing.jpg").Cover(200, 200, "center")
+img := goimage.Open("missing.jpg").Cover(200, 200)
 if err := img.Err(); err != nil {
     if errors.Is(err, goimage.ErrDecoder) {
         log.Fatal("could not decode:", err)
@@ -33,7 +33,7 @@ if err := img.Err(); err != nil {
 | `ErrDecoder` | Unreadable input |
 | `ErrEncoder` | Encode or save path failure |
 | `ErrGeometry` | Invalid size (width/height) |
-| `ErrInvalidDimensions` | Width and height are both `0` |
+| `ErrInvalidDimensions` | Width or height is `0` or negative |
 | `ErrColor` | Unparseable color |
 | `ErrInput` | Bad argument (animation index, etc.) |
 | `ErrNotSupported` | AVIF / HEIC / JPEG 2000, or unknown format |

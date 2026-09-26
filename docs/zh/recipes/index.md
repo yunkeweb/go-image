@@ -14,13 +14,25 @@ import (
 )
 
 func main() {
-	img := goimage.Open("photo.jpg").Cover(400, 300, "center")
+	img := goimage.Open("photo.jpg").Cover(400, 300)
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}
 	if err := img.ToJPEG(85).Save("thumb.jpg"); err != nil {
 		log.Fatal(err)
 	}
+}
+```
+
+## 只指定宽度缩放
+
+```go
+img := goimage.Open("photo.jpg").Resize(400)
+if err := img.Err(); err != nil {
+	log.Fatal(err)
+}
+if err := img.ToJPEG(85).Save("w400.jpg"); err != nil {
+	log.Fatal(err)
 }
 ```
 
@@ -52,7 +64,7 @@ fmt.Println(enc.ToDataURI())
 
 ```go
 img := goimage.DecodeBytes(pngBytes).
-	Scale(128, 0)
+	Scale(128)
 if err := img.Err(); err != nil {
 	log.Fatal(err)
 }
@@ -86,7 +98,7 @@ if err := anim.ToGIF().Save("dot.gif"); err != nil {
 
 ```go
 func thumbnail(w http.ResponseWriter, r *http.Request) {
-	img := goimage.Open("photo.jpg").Cover(400, 300, "center")
+	img := goimage.Open("photo.jpg").Cover(400, 300)
 	if err := img.Err(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -21,7 +21,7 @@ import (
 
 func main() {
 	img := goimage.Open("photo.jpg").
-		Cover(400, 300, "center").
+		Cover(400, 300).
 		Sharpen(8)
 	if err := img.Err(); err != nil {
 		log.Fatal(err)

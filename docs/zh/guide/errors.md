@@ -16,7 +16,7 @@ func (img *Image) Err() error
 4. 可用 `errors.Is` 判断哨兵错误。
 
 ```go
-img := goimage.Open("missing.jpg").Cover(200, 200, "center")
+img := goimage.Open("missing.jpg").Cover(200, 200)
 if err := img.Err(); err != nil {
     if errors.Is(err, goimage.ErrDecoder) {
         log.Fatal("could not decode:", err)
@@ -33,7 +33,7 @@ if err := img.Err(); err != nil {
 | `ErrDecoder` | 无法读取输入 |
 | `ErrEncoder` | 编码或保存失败 |
 | `ErrGeometry` | 非法尺寸 |
-| `ErrInvalidDimensions` | 宽和高同时为 `0` |
+| `ErrInvalidDimensions` | 宽或高为 `0` 或负数 |
 | `ErrColor` | 无法解析的颜色 |
 | `ErrInput` | 非法参数（动画索引等） |
 | `ErrNotSupported` | AVIF / HEIC / JPEG 2000，或未知格式 |

@@ -41,7 +41,7 @@ for _, path := range paths {
     wg.Add(1)
     go func() {
         defer wg.Done()
-        img := goimage.Open(path).Cover(400, 300, "center")
+        img := goimage.Open(path).Cover(400, 300)
         if err := img.Err(); err != nil {
             return
         }
@@ -51,7 +51,7 @@ for _, path := range paths {
 wg.Wait()
 
 base := goimage.Open("photo.jpg")
-go func() { _ = base.Clone().Cover(400, 300, "center").ToJPEG().Save("a.jpg") }()
+go func() { _ = base.Clone().Cover(400, 300).ToJPEG().Save("a.jpg") }()
 go func() { _ = base.Clone().Greyscale().ToPNG().Save("b.png") }()
 ```
 
@@ -61,10 +61,11 @@ Discarded NRGBA buffers go back to `sync.Pool` when their capacity is at most 16
 
 ## Geometry conventions
 
-- Width or height `0` means unspecified (keep aspect ratio).
-- Both `0` returns delayed `ErrInvalidDimensions`.
+- `Resize(400)` / `Scale(400)` omit height and keep aspect ratio.
+- `Resize(400, 300)` sets both sides. Zero or negative sizes yield `ErrInvalidDimensions`.
+- Cover, Contain, Pad, Crop, Fit, and ResizeCanvas take `WithAnchor`, `WithBackground`, and `WithOffset`.
 - 9-point pivots: `center`, `top`, `top-left`, `top-right`, `left`, `right`, `bottom`, `bottom-left`, `bottom-right`.
 - `Rotate` is counter-clockwise.
-- `Cover` fills a box and crops overflow. `Contain` / `Pad` letterbox.
+- `Cover` / `Fit` fill a box and crop overflow. `Contain` / `Pad` letterbox.
 
 Draw and text take `func(*Drawable)` and `func(*Font)` (or a `*Font` value).

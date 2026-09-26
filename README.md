@@ -17,7 +17,7 @@ import (
 
 func main() {
 	img := goimage.Open("photo.jpg").
-		Cover(400, 300, "center").
+		Cover(400, 300).
 		Greyscale().
 		Sharpen(10)
 	if err := img.Err(); err != nil {
@@ -41,7 +41,7 @@ Requires Go 1.22+.
 
 - **Open / Decode / New**: path, `io.Reader`, `[]byte`, `image.Image`, or a blank canvas
 - **Animate** multi-frame GIFs
-- **Geometry**: Resize, Scale, Cover, Contain, Pad, Crop, Trim, ResizeCanvas
+- **Geometry**: `Resize(400)` or `Resize(400, 300)`; Cover / Crop / Pad with `WithAnchor`
 - **Effects**: Greyscale, Invert, Brightness, Contrast, Gamma, Colorize, Blur, Sharpen, Pixelate, Rotate, Flip, Flop, Orient
 - **Draw**: pixel, rectangle, ellipse, circle, polygon, line, bezier, flood fill
 - **Place** watermarks with 9-point alignment and opacity
@@ -92,7 +92,7 @@ anim := mgr.Animate(func(a *goimage.Animation) {
 Modifiers return `*Image` so chains stay fluent. The first failure is stored and later calls become no-ops until you inspect it:
 
 ```go
-img := goimage.Open("missing.jpg").Cover(200, 200, "center")
+img := goimage.Open("missing.jpg").Cover(200, 200)
 if err := img.Err(); err != nil {
 	log.Fatal(err)
 }
@@ -118,7 +118,7 @@ _, _ = enc.WriteTo(w) // http.ResponseWriter, Gin, or any io.Writer
 | TIFF | yes | yes |
 | AVIF / HEIC / JPEG 2000 | delayed `ErrNotSupported` | delayed `ErrNotSupported` |
 
-A width or height of `0` on resize helpers means “unspecified” (keep aspect ratio). Both `0` yields `ErrInvalidDimensions`.
+`Resize(400)` keeps aspect ratio. `Resize(400, 300)` sets both sides. Zero or negative sizes yield delayed `ErrInvalidDimensions`. Cover, Crop, and Pad take `WithAnchor` / `WithBackground` / `WithOffset`.
 
 ## Documentation
 

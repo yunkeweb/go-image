@@ -46,6 +46,51 @@ func (s Size) AlignPivotTo(ref Size, position string) Size {
 	return moved
 }
 
+type geometrySettings struct {
+	anchor     string
+	background any
+	offsetX    int
+	offsetY    int
+}
+
+// GeometryOption configures Cover, Contain, Pad, Crop, Fit, and canvas helpers.
+type GeometryOption func(*geometrySettings)
+
+// WithAnchor sets the 9-point pivot (center, top-left, bottom-right, …).
+func WithAnchor(anchor string) GeometryOption {
+	return func(s *geometrySettings) {
+		if strings.TrimSpace(anchor) != "" {
+			s.anchor = anchor
+		}
+	}
+}
+
+// WithBackground sets the fill color for new canvas pixels.
+func WithBackground(color any) GeometryOption {
+	return func(s *geometrySettings) {
+		if color != nil {
+			s.background = color
+		}
+	}
+}
+
+// WithOffset shifts the crop origin after the anchor is applied.
+func WithOffset(x, y int) GeometryOption {
+	return func(s *geometrySettings) {
+		s.offsetX = x
+		s.offsetY = y
+	}
+}
+
+func applyGeometryOptions(base geometrySettings, opts []GeometryOption) geometrySettings {
+	for _, o := range opts {
+		if o != nil {
+			o(&base)
+		}
+	}
+	return base
+}
+
 type resizer struct {
 	width  int
 	height int
@@ -53,26 +98,35 @@ type resizer struct {
 	hasH   bool
 }
 
-func newResizer(width, height int) (resizer, error) {
-	r := resizer{}
-	if width == 0 && height == 0 {
-		return r, wrap(ErrInvalidDimensions, "width and height cannot both be 0")
+func invalidDimensions() error {
+	return wrap(ErrInvalidDimensions, "invalid dimensions")
+}
+
+// sizeFromArgs builds a resizer from Resize/Scale-style arguments.
+// Omitting height keeps the original aspect ratio. Zero and negative values
+// are errors; 0 is never treated as “auto”.
+func sizeFromArgs(width int, height []int) (resizer, error) {
+	if width < 1 {
+		return resizer{}, invalidDimensions()
 	}
-	if width != 0 {
-		if width < 1 {
-			return r, wrap(ErrGeometry, "the width you specify must be greater than or equal to 1")
-		}
-		r.width = width
-		r.hasW = true
+	r := resizer{width: width, hasW: true}
+	if len(height) == 0 {
+		return r, nil
 	}
-	if height != 0 {
-		if height < 1 {
-			return r, wrap(ErrGeometry, "the height you specify must be greater than or equal to 1")
-		}
-		r.height = height
-		r.hasH = true
+	if height[0] < 1 {
+		return resizer{}, invalidDimensions()
 	}
+	r.height = height[0]
+	r.hasH = true
 	return r, nil
+}
+
+// newResizer requires both width and height to be >= 1.
+func newResizer(width, height int) (resizer, error) {
+	if width < 1 || height < 1 {
+		return resizer{}, invalidDimensions()
+	}
+	return resizer{width: width, hasW: true, height: height, hasH: true}, nil
 }
 
 func (r resizer) proportionalWidth(size Size) int {
@@ -99,23 +153,24 @@ func (r resizer) proportionalHeight(size Size) int {
 
 func (r resizer) resize(size Size) Size {
 	out := size
-	if r.hasW {
+	switch {
+	case r.hasW && r.hasH:
 		out.Width = r.width
-	}
-	if r.hasH {
+		out.Height = r.height
+	case r.hasW:
+		out.Width = r.width
+		out.Height = r.proportionalHeight(size)
+	case r.hasH:
+		out.Width = r.proportionalWidth(size)
 		out.Height = r.height
 	}
 	return out
 }
 
 func (r resizer) resizeDown(size Size) Size {
-	out := size
-	if r.hasW {
-		out.Width = min(r.width, size.Width)
-	}
-	if r.hasH {
-		out.Height = min(r.height, size.Height)
-	}
+	out := r.resize(size)
+	out.Width = min(out.Width, size.Width)
+	out.Height = min(out.Height, size.Height)
 	return out
 }
 

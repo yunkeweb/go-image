@@ -62,4 +62,17 @@ func TestInvalidResizer(t *testing.T) {
 	if _, err := newResizer(0, 0); err == nil {
 		t.Fatal("expected zero-zero error")
 	}
+	if _, err := newResizer(0, 10); err == nil {
+		t.Fatal("expected zero width error")
+	}
+	if _, err := sizeFromArgs(0, nil); err == nil {
+		t.Fatal("expected zero width")
+	}
+	if _, err := sizeFromArgs(10, []int{0}); err == nil {
+		t.Fatal("expected zero height")
+	}
+	r, err := sizeFromArgs(400, nil)
+	if err != nil || !r.hasW || r.hasH {
+		t.Fatalf("auto height resizer %+v %v", r, err)
+	}
 }

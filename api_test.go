@@ -76,7 +76,7 @@ func TestNewManagerReusesConfig(t *testing.T) {
 }
 
 func TestOpenMissingFile(t *testing.T) {
-	img := Open("no-such-file-goimage-test.png").Cover(10, 10, "center")
+	img := Open("no-such-file-goimage-test.png").Cover(10, 10)
 	if img.Err() == nil {
 		t.Fatal("expected delayed error")
 	}

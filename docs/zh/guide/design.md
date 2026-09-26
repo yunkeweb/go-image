@@ -41,7 +41,7 @@ for _, path := range paths {
     wg.Add(1)
     go func() {
         defer wg.Done()
-        img := goimage.Open(path).Cover(400, 300, "center")
+        img := goimage.Open(path).Cover(400, 300)
         if err := img.Err(); err != nil {
             return
         }
@@ -51,7 +51,7 @@ for _, path := range paths {
 wg.Wait()
 
 base := goimage.Open("photo.jpg")
-go func() { _ = base.Clone().Cover(400, 300, "center").ToJPEG().Save("a.jpg") }()
+go func() { _ = base.Clone().Cover(400, 300).ToJPEG().Save("a.jpg") }()
 go func() { _ = base.Clone().Greyscale().ToPNG().Save("b.png") }()
 ```
 
@@ -61,10 +61,11 @@ go func() { _ = base.Clone().Greyscale().ToPNG().Save("b.png") }()
 
 ## 几何约定
 
-- 宽或高为 `0` 表示未指定（保持宽高比）。
-- 两边都为 `0` 时返回延迟错误 `ErrInvalidDimensions`。
+- `Resize(400)` / `Scale(400)` 省略高度，按原图比例计算。
+- `Resize(400, 300)` 同时指定宽高。零或负数返回 `ErrInvalidDimensions`。
+- Cover、Contain、Pad、Crop、Fit、ResizeCanvas 使用 `WithAnchor`、`WithBackground`、`WithOffset`。
 - 九点枢轴：`center`、`top`、`top-left`、`top-right`、`left`、`right`、`bottom`、`bottom-left`、`bottom-right`。
 - `Rotate` 为逆时针。
-- `Cover` 铺满目标框并裁切溢出；`Contain` / `Pad` 留边。
+- `Cover` / `Fit` 铺满目标框并裁切溢出；`Contain` / `Pad` 留边。
 
 绘制与文字接受 `func(*Drawable)` 和 `func(*Font)`（或直接传 `*Font`）。

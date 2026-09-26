@@ -115,12 +115,20 @@ func TestOrientateResetsExifAndPixels(t *testing.T) {
 }
 
 func TestResizeZeroDimensions(t *testing.T) {
-	img := Create(8, 8).Resize(0, 0).Cover(0, 0, "center")
+	img := Create(8, 8).Resize(0, 0).Cover(0, 0)
 	if img.Err() == nil || !errors.Is(img.Err(), ErrInvalidDimensions) {
 		t.Fatalf("want ErrInvalidDimensions, got %v", img.Err())
 	}
 	if _, err := newResizer(0, 0); !errors.Is(err, ErrInvalidDimensions) {
 		t.Fatalf("newResizer: %v", err)
+	}
+	neg := Create(8, 8).Resize(-4)
+	if neg.Err() == nil || !errors.Is(neg.Err(), ErrInvalidDimensions) {
+		t.Fatalf("want ErrInvalidDimensions for negative, got %v", neg.Err())
+	}
+	zeroH := Create(8, 8).Resize(8, 0)
+	if zeroH.Err() == nil || !errors.Is(zeroH.Err(), ErrInvalidDimensions) {
+		t.Fatalf("want ErrInvalidDimensions for zero height, got %v", zeroH.Err())
 	}
 }
 
@@ -222,7 +230,7 @@ func TestGIFOpaqueResizeKeepsPreviousDisposal(t *testing.T) {
 
 func TestPoolReuseAfterChain(t *testing.T) {
 	img := Create(16, 16).Fill(Color{R: 12, G: 34, B: 56, A: 255}).
-		Cover(8, 8, "center").
+		Cover(8, 8).
 		Sharpen(8).
 		Greyscale()
 	if img.Err() != nil {

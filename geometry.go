@@ -55,6 +55,9 @@ type resizer struct {
 
 func newResizer(width, height int) (resizer, error) {
 	r := resizer{}
+	if width == 0 && height == 0 {
+		return r, wrap(ErrInvalidDimensions, "width and height cannot both be 0")
+	}
 	if width != 0 {
 		if width < 1 {
 			return r, wrap(ErrGeometry, "the width you specify must be greater than or equal to 1")
@@ -76,14 +79,22 @@ func (r resizer) proportionalWidth(size Size) int {
 	if !r.hasH {
 		return size.Width
 	}
-	return max(1, int(math.Round(float64(r.height)*size.AspectRatio())))
+	ar := size.AspectRatio()
+	if ar == 0 {
+		return max(1, r.width)
+	}
+	return max(1, int(math.Round(float64(r.height)*ar)))
 }
 
 func (r resizer) proportionalHeight(size Size) int {
 	if !r.hasW {
 		return size.Height
 	}
-	return max(1, int(math.Round(float64(r.width)/size.AspectRatio())))
+	ar := size.AspectRatio()
+	if ar == 0 {
+		return max(1, r.height)
+	}
+	return max(1, int(math.Round(float64(r.width)/ar)))
 }
 
 func (r resizer) resize(size Size) Size {

@@ -8,16 +8,16 @@ import (
 
 // Drawable configures a vector primitive, matching PHP geometry factories.
 type Drawable struct {
-	Width, Height int
-	Radius        int
-	Background    any
-	BorderColor   any
-	BorderSize    int
-	Points        []Point
+	Width, Height  int
+	Radius         int
+	Background     any
+	BorderColor    any
+	BorderSize     int
+	Points         []Point
 	X1, Y1, X2, Y2 int
 }
 
-func (d *Drawable) Size(w, h int) *Drawable { d.Width, d.Height = w, h; return d }
+func (d *Drawable) Size(w, h int) *Drawable   { d.Width, d.Height = w, h; return d }
 func (d *Drawable) SetWidth(w int) *Drawable  { d.Width = w; return d }
 func (d *Drawable) SetHeight(h int) *Drawable { d.Height = h; return d }
 func (d *Drawable) SetRadius(r int) *Drawable { d.Radius = r; return d }
@@ -236,13 +236,6 @@ func (img *Image) DrawBezier(init func(*Drawable)) *Image {
 		}
 		return dst, nil
 	})
-}
-
-func cloneNRGBA(n *image.NRGBA) *image.NRGBA {
-	b := n.Bounds()
-	dst := image.NewNRGBA(b)
-	copy(dst.Pix, n.Pix)
-	return dst
 }
 
 func strokeRect(dst *image.NRGBA, r image.Rectangle, width int, c color.NRGBA) {

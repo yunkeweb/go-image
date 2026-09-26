@@ -33,6 +33,7 @@ if err := img.Err(); err != nil {
 | `ErrDecoder` | Unreadable input |
 | `ErrEncoder` | Encode or save path failure |
 | `ErrGeometry` | Invalid size (width/height) |
+| `ErrInvalidDimensions` | Width and height are both `0` |
 | `ErrColor` | Unparseable color |
 | `ErrInput` | Bad argument (animation index, etc.) |
 | `ErrNotSupported` | AVIF / HEIC / JPEG 2000, or unknown format |

@@ -9,8 +9,8 @@ func (img *Image) Encode(format Format, opts ...EncodeOptions) EncodedImage
 func (img *Image) EncodeByMediaType(mediaType string, opts ...EncodeOptions) EncodedImage
 func (img *Image) EncodeByExtension(ext string, opts ...EncodeOptions) EncodedImage
 func (img *Image) EncodeByPath(path string, opts ...EncodeOptions) EncodedImage
-func (img *Image) ToJPEG(opts ...EncodeOptions) EncodedImage
-func (img *Image) ToJPG(opts ...EncodeOptions) EncodedImage
+func (img *Image) ToJPEG(args ...any) EncodedImage
+func (img *Image) ToJPG(args ...any) EncodedImage
 func (img *Image) ToPNG(opts ...EncodeOptions) EncodedImage
 func (img *Image) ToGIF(opts ...EncodeOptions) EncodedImage
 func (img *Image) ToWebP(opts ...EncodeOptions) EncodedImage
@@ -47,13 +47,23 @@ type EncodeOptions struct {
 }
 ```
 
+`ToJPEG` / `ToJPG` accept an integer quality (`ToJPEG(85)`) or `EncodeOptions`. JPEG encoding writes no EXIF APP1 segment, so orientation tags cannot double-apply after `Orient()` / `Orientate()`.
+
 `ToAVIF`, `ToHEIC`, and `ToJPEG2000` return an `EncodedImage` whose `Err()` is `ErrNotSupported`.
 
 ## Example
 
 ```go
 img := goimage.Create(32, 32).Fill("blue")
-enc := img.ToPNG()
+enc := img.ToJPEG(85)
+if err := enc.Err(); err != nil {
+    log.Fatal(err)
+}
+if err := enc.Save("blue.jpg"); err != nil {
+    log.Fatal(err)
+}
+
+enc = img.ToPNG()
 if err := enc.Err(); err != nil {
     log.Fatal(err)
 }

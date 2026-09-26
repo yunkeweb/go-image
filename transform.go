@@ -9,7 +9,7 @@ import (
 func (img *Image) Flip() *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		b := n.Bounds()
-		dst := image.NewNRGBA(b)
+		dst := acquireNRGBARect(b)
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			sy := b.Max.Y - 1 - (y - b.Min.Y)
 			for x := b.Min.X; x < b.Max.X; x++ {
@@ -23,7 +23,7 @@ func (img *Image) Flip() *Image {
 func (img *Image) Flop() *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		b := n.Bounds()
-		dst := image.NewNRGBA(b)
+		dst := acquireNRGBARect(b)
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			for x := b.Min.X; x < b.Max.X; x++ {
 				sx := b.Max.X - 1 - (x - b.Min.X)
@@ -50,7 +50,7 @@ func (img *Image) Rotate(angle float64, background any) *Image {
 	if angle == 0 {
 		return img
 	}
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
+	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return rotateNRGBA(n, angle, bg.NRGBA()), nil
 	})
 }
@@ -68,11 +68,22 @@ func (img *Image) Orient() *Image {
 		orient = int(t)
 	}
 	applyOrientation(img, orient)
-	if img.exif != nil {
-		img.exif["Orientation"] = 1
-		img.exif["IFD0.Orientation"] = 1
-	}
+	img.markOrientationNormal()
 	return img
+}
+
+// Orientate is the Intervention Image v2 alias of Orient.
+func (img *Image) Orientate() *Image { return img.Orient() }
+
+func (img *Image) markOrientationNormal() {
+	if img == nil {
+		return
+	}
+	if img.exif == nil {
+		img.exif = map[string]any{}
+	}
+	img.exif["Orientation"] = 1
+	img.exif["IFD0.Orientation"] = 1
 }
 
 func rotateNRGBA(src *image.NRGBA, angleDeg float64, bg color.NRGBA) *image.NRGBA {
@@ -152,7 +163,7 @@ func almost90(v float64) bool {
 func rotate90(src *image.NRGBA) *image.NRGBA {
 	b := src.Bounds()
 	w, h := b.Dx(), b.Dy()
-	dst := image.NewNRGBA(image.Rect(0, 0, h, w))
+	dst := acquireNRGBA(h, w)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			dst.SetNRGBA(y, w-1-x, src.NRGBAAt(b.Min.X+x, b.Min.Y+y))
@@ -164,7 +175,7 @@ func rotate90(src *image.NRGBA) *image.NRGBA {
 func rotate180(src *image.NRGBA) *image.NRGBA {
 	b := src.Bounds()
 	w, h := b.Dx(), b.Dy()
-	dst := image.NewNRGBA(image.Rect(0, 0, w, h))
+	dst := acquireNRGBA(w, h)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			dst.SetNRGBA(w-1-x, h-1-y, src.NRGBAAt(b.Min.X+x, b.Min.Y+y))
@@ -176,7 +187,7 @@ func rotate180(src *image.NRGBA) *image.NRGBA {
 func rotate270(src *image.NRGBA) *image.NRGBA {
 	b := src.Bounds()
 	w, h := b.Dx(), b.Dy()
-	dst := image.NewNRGBA(image.Rect(0, 0, h, w))
+	dst := acquireNRGBA(h, w)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			dst.SetNRGBA(h-1-y, x, src.NRGBAAt(b.Min.X+x, b.Min.Y+y))

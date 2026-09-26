@@ -23,7 +23,7 @@ func (img *Image) Trim(tolerance int) *Image
 
 | Name | Notes |
 |------|-------|
-| `width`, `height` | `0` means unspecified (PHP `null`). At least one side must be set for resize/scale |
+| `width`, `height` | `0` means unspecified (PHP `null`). Both `0` returns delayed `ErrInvalidDimensions` (no divide-by-zero) |
 | `position` | 9-point pivot; default `center` for Cover, `top-left` where PHP uses that default |
 | `background` | Color for new canvas pixels (`Contain`, `Pad`, `Crop`, `ResizeCanvas`) |
 | `offsetX`, `offsetY` | Crop origin shift after pivot |

@@ -2,14 +2,14 @@ package goimage
 
 import (
 	"bytes"
+	"golang.org/x/image/bmp"
+	"golang.org/x/image/tiff"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
-	"golang.org/x/image/bmp"
-	"golang.org/x/image/tiff"
 )
 
 func (img *Image) encodeOpts(opts []EncodeOptions) EncodeOptions {
@@ -93,8 +93,50 @@ func (img *Image) EncodeByPath(path string, opts ...EncodeOptions) EncodedImage 
 	return img.Encode(f, opts...)
 }
 
-func (img *Image) ToJPEG(opts ...EncodeOptions) EncodedImage { return img.Encode(FormatJPEG, opts...) }
-func (img *Image) ToJPG(opts ...EncodeOptions) EncodedImage  { return img.ToJPEG(opts...) }
+func parseEncodeArgs(args []any) EncodeOptions {
+	var o EncodeOptions
+	for _, a := range args {
+		switch v := a.(type) {
+		case EncodeOptions:
+			o = v
+		case *EncodeOptions:
+			if v != nil {
+				o = *v
+			}
+		case int:
+			o.Quality = v
+		case int8:
+			o.Quality = int(v)
+		case int16:
+			o.Quality = int(v)
+		case int32:
+			o.Quality = int(v)
+		case int64:
+			o.Quality = int(v)
+		case uint:
+			o.Quality = int(v)
+		case uint8:
+			o.Quality = int(v)
+		case uint16:
+			o.Quality = int(v)
+		case uint32:
+			o.Quality = int(v)
+		case uint64:
+			o.Quality = int(v)
+		case float64:
+			o.Quality = int(v)
+		case float32:
+			o.Quality = int(v)
+		}
+	}
+	return o
+}
+
+// ToJPEG encodes JPEG. Pass an int quality (e.g. ToJPEG(85)) or EncodeOptions.
+func (img *Image) ToJPEG(args ...any) EncodedImage {
+	return img.Encode(FormatJPEG, parseEncodeArgs(args))
+}
+func (img *Image) ToJPG(args ...any) EncodedImage            { return img.ToJPEG(args...) }
 func (img *Image) ToPNG(opts ...EncodeOptions) EncodedImage  { return img.Encode(FormatPNG, opts...) }
 func (img *Image) ToGIF(opts ...EncodeOptions) EncodedImage  { return img.Encode(FormatGIF, opts...) }
 func (img *Image) ToWebP(opts ...EncodeOptions) EncodedImage { return img.Encode(FormatWEBP, opts...) }
@@ -119,7 +161,7 @@ func (img *Image) ToHEIC(opts ...EncodeOptions) EncodedImage {
 func stillForOpaque(img *Image) image.Image {
 	src := img.primary()
 	if src == nil {
-		return image.NewNRGBA(image.Rect(0, 0, 1, 1))
+		return acquireNRGBA(1, 1)
 	}
 	if !hasTransparency(src) {
 		return src
@@ -145,6 +187,8 @@ func hasTransparency(n *image.NRGBA) bool {
 func encodeJPEG(img *Image, o EncodeOptions) ([]byte, error) {
 	var buf bytes.Buffer
 	q := o.qualityOrDefault()
+	// stdlib jpeg.Encode writes no APP1/EXIF, so orientation tags cannot
+	// double-apply after Orient()/auto-orientation reset the in-memory flag to 1.
 	if err := jpeg.Encode(&buf, stillForOpaque(img), &jpeg.Options{Quality: q}); err != nil {
 		return nil, wrap(ErrEncoder, "jpeg encode: %v", err)
 	}
@@ -180,14 +224,27 @@ func encodeTIFF(img *Image) ([]byte, error) {
 
 func encodeGIF(img *Image, o EncodeOptions) ([]byte, error) {
 	_ = o
-	g := &gif.GIF{LoopCount: img.loops}
+	w, h := img.Width(), img.Height()
+	g := &gif.GIF{
+		LoopCount: img.loops,
+		Config:    image.Config{Width: w, Height: h},
+	}
 	for _, f := range img.frames {
-		p := quantizePaletted(f.Img, 256)
+		src := f.Img
+		if src == nil {
+			continue
+		}
+		canvas := acquireNRGBA(w, h)
+		srcB := src.Bounds()
+		pt := image.Pt(f.OffsetLeft, f.OffsetTop)
+		draw.Draw(canvas, srcB.Add(pt).Sub(srcB.Min), src, srcB.Min, draw.Over)
+		p := quantizePaletted(canvas, 256)
+		releaseNRGBA(canvas)
 		g.Image = append(g.Image, p)
 		g.Delay = append(g.Delay, delayToGIF(f.Delay))
 		d := byte(f.Dispose)
 		if d == 0 {
-			d = gif.DisposalNone
+			d = gif.DisposalBackground
 		}
 		g.Disposal = append(g.Disposal, d)
 	}
@@ -325,5 +382,3 @@ func medianCutPalette(src *image.NRGBA, limit int) color.Palette {
 	}
 	return pal
 }
-
-

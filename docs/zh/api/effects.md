@@ -20,6 +20,7 @@ func (img *Image) Flip() *Image
 func (img *Image) Flop() *Image
 func (img *Image) Rotate(angle float64, background any) *Image
 func (img *Image) Orient() *Image
+func (img *Image) Orientate() *Image
 ```
 
 ## 参数
@@ -38,7 +39,7 @@ func (img *Image) Orient() *Image
 | `Rotate` | `background` | 新角落填充色 |
 | `Flip` | | 垂直翻转 |
 | `Flop` | | 水平翻转 |
-| `Orient` | | 应用 EXIF 方向 2–8，然后标记为 1 |
+| `Orient` / `Orientate` | | 应用 EXIF 方向 2–8，然后将标记重置为 `1`（Normal）。JPEG 编码不写 EXIF，避免查看器二次旋转 |
 
 ## 示例
 

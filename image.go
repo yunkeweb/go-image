@@ -104,7 +104,7 @@ func (img *Image) Clone() *Image {
 
 func (img *Image) Native() image.Image {
 	if img.fail() {
-		return image.NewNRGBA(image.Rect(0, 0, 1, 1))
+		return acquireNRGBA(1, 1)
 	}
 	return img.primary()
 }
@@ -373,5 +373,3 @@ func (img *Image) Save(path string, opts ...EncodeOptions) *Image {
 	}
 	return img
 }
-
-

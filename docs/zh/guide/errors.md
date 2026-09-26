@@ -33,6 +33,7 @@ if err := img.Err(); err != nil {
 | `ErrDecoder` | 无法读取输入 |
 | `ErrEncoder` | 编码或保存路径失败 |
 | `ErrGeometry` | 非法尺寸 |
+| `ErrInvalidDimensions` | 宽度与高度同时为 `0` |
 | `ErrColor` | 无法解析的颜色 |
 | `ErrInput` | 参数错误（动画索引等） |
 | `ErrNotSupported` | AVIF / HEIC / JPEG 2000，或未知格式 |

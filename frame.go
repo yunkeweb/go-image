@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"image/gif"
 )
 
 // Frame is one animation frame. Delay is in seconds (PHP Frame::delay).
@@ -26,10 +27,7 @@ func (f Frame) Size() Size {
 func (f Frame) clone() Frame {
 	out := f
 	if f.Img != nil {
-		b := f.Img.Bounds()
-		cp := image.NewNRGBA(b)
-		draw.Draw(cp, b, f.Img, b.Min, draw.Src)
-		out.Img = cp
+		out.Img = cloneNRGBA(f.Img)
 	}
 	return out
 }
@@ -42,15 +40,74 @@ func asNRGBA(src image.Image) *image.NRGBA {
 		return n
 	}
 	b := src.Bounds()
-	dst := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+	dst := acquireNRGBA(b.Dx(), b.Dy())
 	draw.Draw(dst, dst.Bounds(), src, b.Min, draw.Src)
 	return dst
 }
 
 func newBlank(w, h int, bg Color) *image.NRGBA {
-	dst := image.NewNRGBA(image.Rect(0, 0, w, h))
+	dst := acquireNRGBA(w, h)
 	fillRect(dst, dst.Bounds(), bg.NRGBA())
 	return dst
+}
+
+func (img *Image) replaceAll(fn func(*image.NRGBA) (*image.NRGBA, error)) *Image {
+	return img.eachFrame(func(f *Frame) error {
+		old := f.Img
+		n, err := fn(old)
+		if err != nil {
+			return err
+		}
+		if n != old {
+			releaseNRGBA(old)
+		}
+		f.Img = n
+		return nil
+	})
+}
+
+func (img *Image) replaceAllGeometry(fn func(*image.NRGBA) (*image.NRGBA, error)) *Image {
+	img = img.replaceAll(fn)
+	if img.fail() {
+		return img
+	}
+	img.resetGIFFrameLayout()
+	return img
+}
+
+// resetGIFFrameLayout rebases each frame to origin (0,0), clears GIF offsets,
+// and sets DisposalBackground so a later encode cannot leave ghosts or flicker.
+func (img *Image) resetGIFFrameLayout() {
+	if img == nil {
+		return
+	}
+	for i := range img.frames {
+		f := &img.frames[i]
+		if f.Img == nil {
+			continue
+		}
+		rebased := rebaseNRGBA(f.Img)
+		if rebased != f.Img {
+			releaseNRGBA(f.Img)
+			f.Img = rebased
+		}
+		f.OffsetLeft = 0
+		f.OffsetTop = 0
+		f.Dispose = int(gif.DisposalBackground)
+	}
+}
+
+func (img *Image) releaseFrames(except int) {
+	if img == nil {
+		return
+	}
+	for i := range img.frames {
+		if i == except {
+			continue
+		}
+		releaseNRGBA(img.frames[i].Img)
+		img.frames[i].Img = nil
+	}
 }
 
 func fillRect(dst *image.NRGBA, r image.Rectangle, c color.NRGBA) {

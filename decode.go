@@ -151,8 +151,7 @@ func decodeBytes(data []byte, path string, cfg Config) (*Image, error) {
 			img.exif = exif
 			if cfg.AutoOrientation {
 				applyOrientation(img, orient)
-				img.exif["Orientation"] = 1
-				img.exif["IFD0.Orientation"] = 1
+				img.markOrientationNormal()
 			}
 		}
 	}

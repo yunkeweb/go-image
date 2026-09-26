@@ -138,9 +138,13 @@ func drawStringRotated(dst *image.NRGBA, face font.Face, x, y int, s string, col
 	w := font.MeasureString(face, s).Round()
 	h := face.Metrics().Height.Round() + 4
 	pad := strokeW + 2
-	tmp := image.NewNRGBA(image.Rect(0, 0, w+pad*2, h+pad*2))
+	tmp := acquireNRGBA(w+pad*2, h+pad*2)
 	drawString(tmp, face, pad, pad+face.Metrics().Ascent.Round(), s, col, stroke, strokeW)
 	rotated := rotateNRGBA(tmp, angle, color.NRGBA{})
 	pt := image.Pt(x-pad, y-pad-face.Metrics().Ascent.Round())
 	draw.Draw(dst, rotated.Bounds().Add(pt), rotated, rotated.Bounds().Min, draw.Over)
+	if rotated != tmp {
+		releaseNRGBA(rotated)
+	}
+	releaseNRGBA(tmp)
 }

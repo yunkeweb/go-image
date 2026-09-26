@@ -4,17 +4,18 @@ import "fmt"
 
 // Sentinel errors matching PHP Intervention Image exception classes.
 var (
-	ErrRuntime      = fmt.Errorf("runtime error")
-	ErrDecoder      = fmt.Errorf("decoder error")
-	ErrEncoder      = fmt.Errorf("encoder error")
-	ErrGeometry     = fmt.Errorf("geometry error")
-	ErrColor        = fmt.Errorf("color error")
-	ErrInput        = fmt.Errorf("input error")
-	ErrNotSupported = fmt.Errorf("not supported")
-	ErrNotWritable  = fmt.Errorf("not writable")
-	ErrAnimation    = fmt.Errorf("animation error")
-	ErrFont         = fmt.Errorf("font error")
-	ErrDriver       = fmt.Errorf("driver error")
+	ErrRuntime           = fmt.Errorf("runtime error")
+	ErrDecoder           = fmt.Errorf("decoder error")
+	ErrEncoder           = fmt.Errorf("encoder error")
+	ErrGeometry          = fmt.Errorf("geometry error")
+	ErrInvalidDimensions = fmt.Errorf("invalid dimensions")
+	ErrColor             = fmt.Errorf("color error")
+	ErrInput             = fmt.Errorf("input error")
+	ErrNotSupported      = fmt.Errorf("not supported")
+	ErrNotWritable       = fmt.Errorf("not writable")
+	ErrAnimation         = fmt.Errorf("animation error")
+	ErrFont              = fmt.Errorf("font error")
+	ErrDriver            = fmt.Errorf("driver error")
 )
 
 type imageError struct {

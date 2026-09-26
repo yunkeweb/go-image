@@ -59,4 +59,7 @@ func TestInvalidResizer(t *testing.T) {
 	if _, err := newResizer(-1, 10); err == nil {
 		t.Fatal("expected error")
 	}
+	if _, err := newResizer(0, 0); err == nil {
+		t.Fatal("expected zero-zero error")
+	}
 }

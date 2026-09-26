@@ -1,7 +1,6 @@
 package goimage
 
 import (
-	"image"
 	"image/color"
 	"image/gif"
 )
@@ -138,14 +137,14 @@ func imageFromGIF(g *gif.GIF, cfg Config, origin Origin) *Image {
 			h = p.Bounds().Max.Y
 		}
 	}
-	canvas := image.NewNRGBA(image.Rect(0, 0, w, h))
+	canvas := acquireNRGBA(w, h)
 	frames := make([]Frame, 0, len(g.Image))
 	for i, pal := range g.Image {
 		delay := 0.0
 		if i < len(g.Delay) {
 			delay = float64(g.Delay[i]) / 100
 		}
-		dispose := 1
+		dispose := int(gif.DisposalNone)
 		if i < len(g.Disposal) {
 			dispose = int(g.Disposal[i])
 		}
@@ -163,7 +162,15 @@ func imageFromGIF(g *gif.GIF, cfg Config, origin Origin) *Image {
 				canvas.SetNRGBA(x, y, color.NRGBA{R: uint8(r >> 8), G: uint8(g8 >> 8), B: uint8(b >> 8), A: uint8(a >> 8)})
 			}
 		}
-		frames = append(frames, Frame{Img: asNRGBA(canvas), Delay: delay, Dispose: dispose})
+		// Snapshot a full independent frame at origin so later Crop/Resize can
+		// reset Disposal/Rect without sharing the compositor canvas.
+		frames = append(frames, Frame{
+			Img:        cloneNRGBA(canvas),
+			Delay:      delay,
+			Dispose:    int(gif.DisposalBackground),
+			OffsetLeft: 0,
+			OffsetTop:  0,
+		})
 		if dispose == int(gif.DisposalBackground) {
 			fillRect(canvas, pb, color.NRGBA{})
 		} else if dispose == int(gif.DisposalPrevious) {
@@ -176,6 +183,7 @@ func imageFromGIF(g *gif.GIF, cfg Config, origin Origin) *Image {
 			}
 		}
 	}
+	releaseNRGBA(canvas)
 	img := newImage(frames, cfg)
 	img.loops = g.LoopCount
 	img.origin = origin

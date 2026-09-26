@@ -58,7 +58,7 @@ func (w *bitWriter) put(val uint32, bits int) {
 // matching golang.org/x/image/vp8l tree walking.
 func (w *bitWriter) putHuff(code uint32, nbits int) {
 	for i := nbits - 1; i >= 0; i-- {
-		w.put((code >> uint(i)) & 1, 1)
+		w.put((code>>uint(i))&1, 1)
 	}
 }
 

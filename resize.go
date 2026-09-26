@@ -15,20 +15,9 @@ func resample(src *image.NRGBA, srcRect image.Rectangle, dw, dh int) *image.NRGB
 	if dh < 1 {
 		dh = 1
 	}
-	dst := image.NewNRGBA(image.Rect(0, 0, dw, dh))
+	dst := acquireNRGBA(dw, dh)
 	xdraw.CatmullRom.Scale(dst, dst.Bounds(), src, srcRect, draw.Src, nil)
 	return dst
-}
-
-func (img *Image) replaceAll(fn func(*image.NRGBA) (*image.NRGBA, error)) *Image {
-	return img.eachFrame(func(f *Frame) error {
-		n, err := fn(f.Img)
-		if err != nil {
-			return err
-		}
-		f.Img = n
-		return nil
-	})
 }
 
 // Resize stretches to width/height. A zero dimension keeps the original.
@@ -41,7 +30,7 @@ func (img *Image) Resize(width, height int) *Image {
 		return img.setErr(err)
 	}
 	target := r.resize(img.Size())
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
+	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return resample(n, n.Bounds(), target.Width, target.Height), nil
 	})
 }
@@ -55,7 +44,7 @@ func (img *Image) ResizeDown(width, height int) *Image {
 		return img.setErr(err)
 	}
 	target := r.resizeDown(img.Size())
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
+	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return resample(n, n.Bounds(), target.Width, target.Height), nil
 	})
 }
@@ -69,7 +58,7 @@ func (img *Image) Scale(width, height int) *Image {
 		return img.setErr(err)
 	}
 	target := r.scale(img.Size())
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
+	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return resample(n, n.Bounds(), target.Width, target.Height), nil
 	})
 }
@@ -83,7 +72,7 @@ func (img *Image) ScaleDown(width, height int) *Image {
 		return img.setErr(err)
 	}
 	target := r.scaleDown(img.Size())
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
+	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return resample(n, n.Bounds(), target.Width, target.Height), nil
 	})
 }
@@ -145,7 +134,7 @@ func coverSizes(imagesize Size, width, height int, pos string, _ bool) (crop Siz
 func (img *Image) applyCover(crop, resizeTo Size) *Image {
 	px, py := crop.Pivot.X, crop.Pivot.Y
 	cw, ch := crop.Width, crop.Height
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
+	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		b := n.Bounds()
 		sr := image.Rect(b.Min.X+px, b.Min.Y+py, b.Min.X+px+cw, b.Min.Y+py+ch).Intersect(b)
 		return resample(n, sr, resizeTo.Width, resizeTo.Height), nil
@@ -203,11 +192,14 @@ func (img *Image) Pad(width, height int, background any, position ...string) *Im
 }
 
 func (img *Image) placeOnCanvas(width, height int, crop Size, bg Color) *Image {
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
+	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		scaled := resample(n, n.Bounds(), crop.Width, crop.Height)
 		dst := newBlank(width, height, bg)
 		pt := image.Pt(crop.Pivot.X, crop.Pivot.Y)
 		draw.Draw(dst, scaled.Bounds().Add(pt), scaled, scaled.Bounds().Min, draw.Over)
+		if scaled != n {
+			releaseNRGBA(scaled)
+		}
 		return dst, nil
 	})
 }
@@ -215,6 +207,9 @@ func (img *Image) placeOnCanvas(width, height int, crop Size, bg Color) *Image {
 func (img *Image) Crop(width, height, offsetX, offsetY int, background any, position ...string) *Image {
 	if img.fail() {
 		return img
+	}
+	if width == 0 && height == 0 {
+		return img.setErr(wrap(ErrInvalidDimensions, "width and height cannot both be 0"))
 	}
 	pos := "top-left"
 	if len(position) > 0 && position[0] != "" {
@@ -229,7 +224,7 @@ func (img *Image) Crop(width, height, offsetX, offsetY int, background any, posi
 	crop = crop.AlignPivotTo(orig, pos)
 	px := crop.Pivot.X + offsetX
 	py := crop.Pivot.Y + offsetY
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
+	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		dst := newBlank(width, height, bg)
 		srcRect := n.Bounds()
 		dp := image.Pt(-px, -py)
@@ -259,7 +254,7 @@ func (img *Image) ResizeCanvas(width, height int, background any, position ...st
 	orig := img.Size()
 	canvas := Size{Width: width, Height: height}
 	placed := orig.AlignPivotTo(canvas, pos)
-	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
+	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		dst := newBlank(width, height, bg)
 		pt := image.Pt(placed.Pivot.X, placed.Pivot.Y)
 		draw.Draw(dst, n.Bounds().Add(pt), n, n.Bounds().Min, draw.Over)
@@ -309,12 +304,16 @@ func (img *Image) Trim(tolerance int) *Image {
 		}
 	}
 	if maxX <= minX || maxY <= minY {
+		releaseNRGBA(n)
 		img.frames[0].Img = newBlank(1, 1, colorFromNRGBA(ref))
+		img.resetGIFFrameLayout()
 		return img
 	}
-	cropped := image.NewNRGBA(image.Rect(0, 0, maxX-minX, maxY-minY))
+	cropped := acquireNRGBA(maxX-minX, maxY-minY)
 	draw.Draw(cropped, cropped.Bounds(), n, image.Pt(minX, minY), draw.Src)
+	releaseNRGBA(n)
 	img.frames[0].Img = cropped
+	img.resetGIFFrameLayout()
 	return img
 }
 

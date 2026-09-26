@@ -20,6 +20,7 @@ func (img *Image) Flip() *Image
 func (img *Image) Flop() *Image
 func (img *Image) Rotate(angle float64, background any) *Image
 func (img *Image) Orient() *Image
+func (img *Image) Orientate() *Image
 ```
 
 ## Parameters
@@ -38,7 +39,7 @@ func (img *Image) Orient() *Image
 | `Rotate` | `background` | Fill color for new corners |
 | `Flip` | | Vertical (top ↔ bottom) |
 | `Flop` | | Horizontal (left ↔ right) |
-| `Orient` | | Applies EXIF orientation 2–8, then stamps orientation 1 |
+| `Orient` / `Orientate` | | Applies EXIF orientation 2–8, then stamps orientation `1` (Normal). JPEG encode omits EXIF so viewers cannot rotate twice |
 
 ## Example
 

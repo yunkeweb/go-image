@@ -137,5 +137,3 @@ func TestBlendingColor(t *testing.T) {
 		t.Fatalf("%+v", c)
 	}
 }
-
-

@@ -32,6 +32,8 @@ func (img *Image) SliceAnimation(offset int, length int) *Image
 
 `WithDecodeAnimation(false)` 读取 GIF 时只保留第一帧。
 
+`Crop`、`Resize` 等几何修改器会把每一帧重基准到原点 `(0,0)`，清零 `OffsetLeft` / `OffsetTop`，并将 Disposal 设为恢复背景色，避免导出 GIF 残影或错位。
+
 ## 示例
 
 ```go

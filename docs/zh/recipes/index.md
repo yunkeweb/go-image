@@ -18,7 +18,7 @@ func main() {
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}
-	if err := img.ToJPEG(goimage.EncodeOptions{Quality: 85}).Save("thumb.jpg"); err != nil {
+	if err := img.ToJPEG(85).Save("thumb.jpg"); err != nil {
 		log.Fatal(err)
 	}
 }

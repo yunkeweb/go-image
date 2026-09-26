@@ -75,7 +75,7 @@ func (img *Image) Pixelate(size int) *Image {
 	}
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		b := n.Bounds()
-		dst := image.NewNRGBA(b)
+		dst := acquireNRGBARect(b)
 		for y := b.Min.Y; y < b.Max.Y; y += size {
 			for x := b.Min.X; x < b.Max.X; x += size {
 				x2 := min(x+size, b.Max.X)
@@ -110,7 +110,11 @@ func (img *Image) Blur(amount int) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		out := n
 		for i := 0; i < amount; i++ {
-			out = gaussian3(out)
+			next := gaussian3(out)
+			if out != n {
+				releaseNRGBA(out)
+			}
+			out = next
 		}
 		return out, nil
 	})
@@ -120,12 +124,16 @@ func gaussian3(src *image.NRGBA) *image.NRGBA {
 	// Separable approximation of GD's IMG_FILTER_GAUSSIAN_BLUR (3x3).
 	k := []float64{1, 2, 1}
 	tmp := convolve1D(src, k, true)
-	return convolve1D(tmp, k, false)
+	out := convolve1D(tmp, k, false)
+	if tmp != src {
+		releaseNRGBA(tmp)
+	}
+	return out
 }
 
 func convolve1D(src *image.NRGBA, k []float64, horizontal bool) *image.NRGBA {
 	b := src.Bounds()
-	dst := image.NewNRGBA(b)
+	dst := acquireNRGBARect(b)
 	sum := 0.0
 	for _, v := range k {
 		sum += v
@@ -180,7 +188,7 @@ func (img *Image) Sharpen(amount int) *Image {
 
 func convolve3(src *image.NRGBA, k [3][3]float64) *image.NRGBA {
 	b := src.Bounds()
-	dst := image.NewNRGBA(b)
+	dst := acquireNRGBARect(b)
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
 			var rr, gg, bb, aa float64
@@ -240,7 +248,7 @@ func (img *Image) ReduceColors(limit int, background any) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		pal := medianCutPalette(n, limit)
 		b := n.Bounds()
-		dst := image.NewNRGBA(b)
+		dst := acquireNRGBARect(b)
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			for x := b.Min.X; x < b.Max.X; x++ {
 				dst.Set(x, y, pal.Convert(n.NRGBAAt(x, y)))
@@ -253,7 +261,7 @@ func (img *Image) ReduceColors(limit int, background any) *Image {
 func (img *Image) mapPixels(fn func(color.NRGBA) color.NRGBA) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		b := n.Bounds()
-		dst := image.NewNRGBA(b)
+		dst := acquireNRGBARect(b)
 		for y := b.Min.Y; y < b.Max.Y; y++ {
 			for x := b.Min.X; x < b.Max.X; x++ {
 				dst.SetNRGBA(x, y, fn(n.NRGBAAt(x, y)))
@@ -274,7 +282,9 @@ func (img *Image) RemoveAnimation(position any) *Image {
 	if len(img.frames) == 0 {
 		return img
 	}
-	img.frames = []Frame{img.frames[idx].clone()}
+	keep := img.frames[idx].clone()
+	img.releaseFrames(-1)
+	img.frames = []Frame{keep}
 	img.loops = 0
 	return img
 }
@@ -298,8 +308,7 @@ func (img *Image) SliceAnimation(offset int, length int) *Image {
 	for i := offset; i < end; i++ {
 		cp = append(cp, img.frames[i].clone())
 	}
+	img.releaseFrames(-1)
 	img.frames = cp
 	return img
 }
-
-

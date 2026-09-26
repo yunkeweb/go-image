@@ -32,6 +32,8 @@ func (img *Image) SliceAnimation(offset int, length int) *Image
 
 `WithDecodeAnimation(false)` keeps only the first GIF frame on read.
 
+`Crop`, `Resize`, and the other geometry modifiers rebase every frame to origin `(0,0)`, clear `OffsetLeft` / `OffsetTop`, and set disposal to background restore so the encoded GIF does not ghost or jitter.
+
 ## Example
 
 ```go

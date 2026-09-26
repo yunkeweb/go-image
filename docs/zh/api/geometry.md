@@ -23,7 +23,7 @@ func (img *Image) Trim(tolerance int) *Image
 
 | 名称 | 说明 |
 |------|------|
-| `width`, `height` | `0` 表示未指定（PHP `null`）。Resize/Scale 至少要指定一边 |
+| `width`, `height` | `0` 表示未指定（PHP `null`）。两边都为 `0` 时返回延迟错误 `ErrInvalidDimensions`，不会除零 |
 | `position` | 九点枢轴；Cover 默认 `center` |
 | `background` | 新画布像素颜色（`Contain`、`Pad`、`Crop`、`ResizeCanvas`） |
 | `offsetX`, `offsetY` | 枢轴之后的裁剪偏移 |

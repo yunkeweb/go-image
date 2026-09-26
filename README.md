@@ -123,9 +123,9 @@ _, _ = enc.WriteTo(w) // http.ResponseWriter, Gin, or any io.Writer
 
 ## Documentation
 
-- [Getting started](https://yunkeweb.github.io/go-image/guide/getting-started.html)
-- [API reference](https://yunkeweb.github.io/go-image/api/manager.html)
-- [Recipes](https://yunkeweb.github.io/go-image/recipes/)
+- [Getting started](https://yunkeweb.github.io/go-image/getting-started/installation.html)
+- [Modifying Images](https://yunkeweb.github.io/go-image/modifying/resize.html)
+- [Cookbook](https://yunkeweb.github.io/go-image/cookbook/)
 - Local docs: `npm install && npm run docs:dev`
 
 ## Tests

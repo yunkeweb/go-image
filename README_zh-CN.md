@@ -123,9 +123,9 @@ _, _ = enc.WriteTo(w) // http.ResponseWriter、Gin 或任意 io.Writer
 
 ## 文档
 
-- [快速开始](https://yunkeweb.github.io/go-image/zh/guide/getting-started.html)
-- [API 参考](https://yunkeweb.github.io/go-image/zh/api/manager.html)
-- [示例](https://yunkeweb.github.io/go-image/zh/recipes/)
+- [快速开始](https://yunkeweb.github.io/go-image/zh/getting-started/installation.html)
+- [图像处理 API](https://yunkeweb.github.io/go-image/zh/modifying/resize.html)
+- [实战场景](https://yunkeweb.github.io/go-image/zh/cookbook/)
 - 本地文档：`npm install && npm run docs:dev`
 
 ## 测试

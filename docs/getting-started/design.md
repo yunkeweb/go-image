@@ -1,0 +1,105 @@
+# Core Design
+
+go-image is a modern Go image library. The public surface is package-level functions, functional options, strong types, and a delayed error on `Image`. Internals reuse NRGBA buffers through `sync.Pool`. There is no CGO and no global lock on the pixel path.
+
+## Package-level first
+
+```go
+img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true))
+canvas := goimage.New(800, 600)
+raw := goimage.Decode(reader)
+```
+
+`NewManager` exists for shared `Config` across many files. Everyday code stays on `Open` / `Decode` / `New`.
+
+## Functional options
+
+`opts ...Option` works on `Open`, `Decode`, `DecodeBytes`, `FromImage`, `New`, `Animate`, and `NewManager`. Each call copies `defaultConfig()` and applies the functions. Concurrent callers never share mutable global state.
+
+Geometry helpers (`Cover`, `Contain`, `Pad`, `Crop`, `Fit`, `ResizeCanvas`) take `...GeometryOption`:
+
+| Option | Applies to | Default |
+|--------|------------|---------|
+| `WithAnchor(name)` | Cover, Contain, Pad, Crop, canvas | `center` (Crop: `top-left`) |
+| `WithBackground(color)` | Contain, Pad, Crop, canvas | `"ffffff"` |
+| `WithOffset(x, y)` | Crop | `0, 0` |
+
+Resize-family methods use a variadic height instead of an option: `Resize(400)` keeps aspect ratio; `Resize(400, 300)` sets both sides.
+
+## Typed inputs
+
+Go has no function overloading. Entry points are named by the source type:
+
+| Function | Type |
+|----------|------|
+| `Open` | `string` path |
+| `Decode` | `io.Reader` |
+| `DecodeBytes` | `[]byte` |
+| `FromImage` | `image.Image` |
+| `New` | `int, int` canvas |
+
+`Place` takes `*Image`. Open the overlay first:
+
+```go
+img.Place(goimage.Open("logo.png"), "bottom-right", 16, 16, 70)
+```
+
+## Delayed errors and goroutines
+
+Chains return `*Image`. The first error sticks on that value; later modifiers become no-ops. An `Image` is **not** safe for concurrent mutation. Process independent files in parallel, or `Clone()` before sharing one source.
+
+```go
+var wg sync.WaitGroup
+for _, path := range paths {
+	path := path
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		img := goimage.Open(path).Cover(400, 300)
+		if err := img.Err(); err != nil {
+			return
+		}
+		_ = img.ToJPEG(80).Save("out/" + filepath.Base(path))
+	}()
+}
+wg.Wait()
+
+base := goimage.Open("photo.jpg")
+go func() { _ = base.Clone().Cover(400, 300).ToJPEG().Save("a.jpg") }()
+go func() { _ = base.Clone().Greyscale().ToPNG().Save("b.png") }()
+```
+
+There is no `sync.Mutex` on `Image`. Isolation comes from ownership: each goroutine either opens its own file or works on a `Clone`.
+
+## Owned buffers and `sync.Pool`
+
+`FromImage` and every decoder copy into a library-owned NRGBA with `draw.Draw`. JPEG YCbCr, paletted GIF, RGBA, and NRGBA inputs never panic on a type assertion and never share the caller's `Pix` slice.
+
+Discarded NRGBA buffers return to `sync.Pool` when their capacity is at most 16 MiB. Larger frames are released to the garbage collector so a 50-megapixel decode cannot pin a huge slice for later 64×64 work.
+
+## Package layout
+
+```go
+import goimage "github.com/yunkeweb/go-image"
+```
+
+| Path | Role |
+|------|------|
+| Root (`image.go`, `options.go`, `api.go`) | Public types and thin wrappers |
+| `modifier/` | Geometry, effects, drawing, GIF layout |
+| `encoder/` | JPEG, PNG, GIF, WebP, BMP, TIFF |
+| `internal/pool`, `internal/color` | Buffer reuse and HTML color names |
+
+Application code imports only the root module.
+
+## Geometry conventions
+
+- `Resize(400)` / `Scale(400)` omit height and keep aspect ratio.
+- `Resize(400, 300)` sets both sides. Zero or negative sizes yield `ErrInvalidDimensions`. `0` is never “auto”.
+- Cover, Contain, Pad, Crop, Fit, and ResizeCanvas take `WithAnchor`, `WithBackground`, and `WithOffset`.
+- Nine-point pivots: `center`, `top`, `top-left`, `top-right`, `left`, `right`, `bottom`, `bottom-left`, `bottom-right`.
+- `Rotate` is counter-clockwise.
+- `Cover` / `Fit` fill a box and crop overflow. `Contain` / `Pad` letterbox.
+- Resampling uses Catmull-Rom (`golang.org/x/image/draw`).
+
+Draw and text take `func(*Drawable)` and `func(*Font)` (or a `*Font` value).

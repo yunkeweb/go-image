@@ -3,19 +3,21 @@ layout: home
 hero:
   name: go-image
   text: Fluent image processing in Go
-  tagline: Package-level APIs, functional options, and stdlib-only codecs. No CGO.
+  tagline: Zero CGO. Package-level APIs, functional options, and pooled NRGBA buffers. JPEG, PNG, GIF, WebP, BMP, and TIFF.
   actions:
     - theme: brand
       text: Get Started
-      link: /guide/getting-started
+      link: /getting-started/installation
     - theme: alt
-      text: API Reference
-      link: /api/manager
+      text: Cookbook
+      link: /cookbook/
 features:
   - title: Idiomatic Go
-    details: Open, Decode, and New at package level. Functional options on every entry point. Strong types instead of any.
-  - title: Owned buffers
-    details: Decode and FromImage copy into NRGBA via draw.Draw. Clone for concurrent work. WriteTo streams to any io.Writer.
+    details: Open, Decode, and New live at package level. Variadic height on Resize. WithAnchor and WithBackground on Cover and Crop. One import path.
+  - title: Lock-free pipelines
+    details: Each Image owns its pixels and delayed error. Process files in parallel goroutines, or Clone before sharing one source. No mutex on the hot path.
+  - title: Owned, pooled buffers
+    details: Decode copies into NRGBA with draw.Draw. Discarded buffers return to sync.Pool up to 16 MiB so large frames do not pin huge slices.
   - title: Encode without CGO
-    details: JPEG, PNG, GIF (including animation), lossless WebP, BMP, and TIFF.
+    details: JPEG, PNG, animated GIF, lossless WebP, BMP, and TIFF. EncodedImage.WriteTo streams bytes to any io.Writer, including HTTP handlers.
 ---

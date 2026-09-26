@@ -10,11 +10,11 @@ canvas := goimage.New(800, 600)
 raw := goimage.Decode(reader)
 ```
 
-`NewManager` 用于多文件共享同一份 `Config`。日常代码直接写 `Open` / `Decode` / `New`。
+共享的解码设置放在 `Config` 里。复制 `DefaultConfig`（或自建一份 `Config`），再用 `WithConfig` 传给 `Open` / `Decode` / `New` / `Animate`。
 
 ## Functional Options
 
-`opts ...Option` 可用于 `Open`、`Decode`、`DecodeBytes`、`FromImage`、`New`、`Animate`、`NewManager`。每次调用都会复制 `defaultConfig()` 再应用函数。并发调用方不会共享可变全局状态。
+`opts ...Option` 可用于 `Open`、`Decode`、`DecodeBytes`、`FromImage`、`New`、`Animate`。每次调用都会复制 `DefaultConfig` 再应用函数。并发调用方不会共享可变全局状态。
 
 几何辅助方法（`Cover`、`Contain`、`Pad`、`Crop`、`Fit`、`ResizeCanvas`）接受 `...GeometryOption`：
 

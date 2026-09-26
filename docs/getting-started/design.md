@@ -10,11 +10,11 @@ canvas := goimage.New(800, 600)
 raw := goimage.Decode(reader)
 ```
 
-`NewManager` exists for shared `Config` across many files. Everyday code stays on `Open` / `Decode` / `New`.
+Shared decode settings live in `Config`. Copy `DefaultConfig` (or build a `Config` value) and pass `WithConfig` into `Open` / `Decode` / `New` / `Animate`.
 
 ## Functional options
 
-`opts ...Option` works on `Open`, `Decode`, `DecodeBytes`, `FromImage`, `New`, `Animate`, and `NewManager`. Each call copies `defaultConfig()` and applies the functions. Concurrent callers never share mutable global state.
+`opts ...Option` works on `Open`, `Decode`, `DecodeBytes`, `FromImage`, `New`, and `Animate`. Each call copies `DefaultConfig` and applies the functions. Concurrent callers never share mutable global state.
 
 Geometry helpers (`Cover`, `Contain`, `Pad`, `Crop`, `Fit`, `ResizeCanvas`) take `...GeometryOption`:
 

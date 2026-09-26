@@ -81,14 +81,12 @@ img := goimage.Open("input.png",
 )
 ```
 
-Reuse one config across many files with `NewManager`:
+Reuse one config across many files with `WithConfig`:
 
 ```go
-mgr := goimage.NewManager(
-	goimage.WithAutoOrientation(true),
-	goimage.WithDecodeAnimation(false), // stills only
-)
-thumb := mgr.Open("photo.jpg").Cover(200, 200)
+cfg := goimage.DefaultConfig
+cfg.DecodeAnimation = false // stills only
+thumb := goimage.Open("photo.jpg", goimage.WithConfig(cfg)).Cover(200, 200)
 ```
 
 ## Geometry in one line

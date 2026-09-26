@@ -24,7 +24,7 @@ go get github.com/yunkeweb/go-image@v0.1.7
 
 ## Import
 
-Callers import one path. Public types (`Image`, `Color`, `Manager`, `EncodedImage`) and every modifier live in package `goimage`:
+Callers import one path. Public types (`Image`, `Color`, `Config`, `EncodedImage`) and every modifier live in package `goimage`:
 
 ```go
 package main

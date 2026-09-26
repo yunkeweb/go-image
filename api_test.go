@@ -59,17 +59,17 @@ func TestOpenDecodeFromImage(t *testing.T) {
 	}
 }
 
-func TestNewManagerReusesConfig(t *testing.T) {
-	mgr := NewManager(WithAutoOrientation(false), WithDecodeAnimation(false), WithBlendingColor("#00ff00"))
-	if mgr.Config().AutoOrientation || mgr.Config().DecodeAnimation {
+func TestWithConfigReusesSettings(t *testing.T) {
+	cfg := Config{AutoOrientation: false, DecodeAnimation: false, BlendingColor: "#00ff00"}
+	img := New(2, 2, WithConfig(cfg))
+	if img.Config().AutoOrientation || img.Config().DecodeAnimation {
 		t.Fatal("options")
 	}
-	img := mgr.New(2, 2)
 	if img.BlendingColor().G != 255 {
 		t.Fatalf("blend %+v", img.BlendingColor())
 	}
 	enc := New(3, 3).Fill(Color{R: 1, A: 255}).ToPNG()
-	got := mgr.DecodeBytes(enc.Bytes())
+	got := DecodeBytes(enc.Bytes(), WithConfig(cfg))
 	if got.Err() != nil {
 		t.Fatal(got.Err())
 	}

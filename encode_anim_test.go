@@ -149,12 +149,18 @@ func TestParseFormatAliases(t *testing.T) {
 	}
 }
 
-func TestManagerOptions(t *testing.T) {
-	m := NewManager(WithAutoOrientation(false), WithDecodeAnimation(false), WithBlendingColor("red"))
-	if m.Config().AutoOrientation || m.Config().DecodeAnimation {
+func TestDefaultConfigAndWithConfig(t *testing.T) {
+	if !DefaultConfig.AutoOrientation || !DefaultConfig.DecodeAnimation {
+		t.Fatal("package defaults")
+	}
+	cfg := DefaultConfig
+	cfg.AutoOrientation = false
+	cfg.DecodeAnimation = false
+	cfg.BlendingColor = "red"
+	img := Create(1, 1, WithConfig(cfg))
+	if img.Config().AutoOrientation || img.Config().DecodeAnimation {
 		t.Fatal("options")
 	}
-	img := m.Create(1, 1)
 	if img.BlendingColor().R != 255 {
 		t.Fatalf("blend %+v", img.BlendingColor())
 	}

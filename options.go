@@ -2,7 +2,7 @@ package goimage
 
 import "strings"
 
-// Config holds decode and encode defaults for a Manager or a single call.
+// Config holds decode and encode defaults for a single Open/Decode/New/Animate call.
 type Config struct {
 	AutoOrientation bool
 	DecodeAnimation bool
@@ -10,13 +10,13 @@ type Config struct {
 	Strip           bool
 }
 
-func defaultConfig() Config {
-	return Config{
-		AutoOrientation: true,
-		DecodeAnimation: true,
-		BlendingColor:   "ffffff",
-		Strip:           false,
-	}
+// DefaultConfig is copied at the start of every package-level entry point.
+// Mutate a copy and pass it with WithConfig when many calls share one setup.
+var DefaultConfig = Config{
+	AutoOrientation: true,
+	DecodeAnimation: true,
+	BlendingColor:   "ffffff",
+	Strip:           false,
 }
 
 // Option is a functional option applied to Config.
@@ -36,6 +36,11 @@ func WithBlendingColor(color any) Option {
 
 func WithStrip(v bool) Option {
 	return func(c *Config) { c.Strip = v }
+}
+
+// WithConfig replaces the working Config with c. Later options still overlay fields.
+func WithConfig(c Config) Option {
+	return func(dst *Config) { *dst = c }
 }
 
 type geometrySettings struct {
@@ -103,7 +108,7 @@ func (o EncodeOptions) qualityOrDefault() int {
 }
 
 func applyOptions(opts []Option) Config {
-	cfg := defaultConfig()
+	cfg := DefaultConfig
 	for _, o := range opts {
 		if o != nil {
 			o(&cfg)

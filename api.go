@@ -62,20 +62,6 @@ func Animate(init func(*Animation), opts ...Option) *Image {
 	return buildAnimation(applyOptions(opts), init)
 }
 
-// NewManager returns a Manager that reuses the same Config for Open, Decode, and New.
-func NewManager(opts ...Option) *Manager {
-	return &Manager{cfg: applyOptions(opts)}
-}
-
-// Manager holds a Config reused across Open, Decode, and New.
-type Manager struct {
-	cfg Config
-}
-
-func (m *Manager) Driver() string { return "go" }
-
-func (m *Manager) Config() Config { return m.cfg }
-
 func newCanvas(width, height int, cfg Config) *Image {
 	if width < 1 || height < 1 {
 		return failed(wrap(ErrGeometry, "width and height must be >= 1"))
@@ -83,36 +69,6 @@ func newCanvas(width, height int, cfg Config) *Image {
 	img := newImage([]Frame{{Img: pool.Blank(width, height, ColorTransparent.NRGBA())}}, cfg)
 	img.origin = Origin{MediaType: "application/octet-stream"}
 	return img
-}
-
-func (m *Manager) New(width, height int) *Image {
-	return newCanvas(width, height, m.cfg)
-}
-
-func (m *Manager) Create(width, height int) *Image { return m.New(width, height) }
-
-func (m *Manager) Open(path string) *Image {
-	return result(decodeFile(path, m.cfg))
-}
-
-func (m *Manager) Decode(r io.Reader) *Image {
-	return result(decodeReader(r, m.cfg))
-}
-
-func (m *Manager) DecodeBytes(data []byte) *Image {
-	return result(decodeBytes(data, "", m.cfg))
-}
-
-func (m *Manager) DecodeDataURI(uri string) *Image {
-	return result(decodeDataURI(uri, m.cfg))
-}
-
-func (m *Manager) FromImage(src image.Image) *Image {
-	return result(fromStdImage(src, m.cfg))
-}
-
-func (m *Manager) Animate(init func(*Animation)) *Image {
-	return buildAnimation(m.cfg, init)
 }
 
 func decodeFile(path string, cfg Config) (*Image, error) {

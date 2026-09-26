@@ -54,7 +54,7 @@ func main() {
 }
 ```
 
-## 示例：解码一次，Clone + Manager 出两种尺寸
+## 示例：解码一次，Clone + WithConfig 出两种尺寸
 
 ```go
 package main
@@ -67,11 +67,10 @@ import (
 )
 
 func main() {
-	mgr := goimage.NewManager(
-		goimage.WithAutoOrientation(true),
-		goimage.WithDecodeAnimation(false),
-	)
-	base := mgr.Open("hero.jpg")
+	cfg := goimage.DefaultConfig
+	cfg.AutoOrientation = true
+	cfg.DecodeAnimation = false
+	base := goimage.Open("hero.jpg", goimage.WithConfig(cfg))
 	if err := base.Err(); err != nil {
 		log.Fatal(err)
 	}

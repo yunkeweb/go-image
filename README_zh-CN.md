@@ -73,19 +73,16 @@ img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true))
 | `New` | 画布宽高 |
 | `Animate` | 帧构建回调 |
 
-Functional Options（`WithAutoOrientation`、`WithDecodeAnimation`、`WithBlendingColor`、`WithStrip`）作用于单次调用。多图共享配置时用 `NewManager`。
+Functional Options（`WithAutoOrientation`、`WithDecodeAnimation`、`WithBlendingColor`、`WithStrip`）作用于单次调用。多图共享配置用 `Config` / `DefaultConfig`，再通过 `WithConfig` 传入：
 
 ```go
-mgr := goimage.NewManager(
-	goimage.WithAutoOrientation(true),
-	goimage.WithDecodeAnimation(true),
-	goimage.WithBlendingColor("ffffff"),
-)
-canvas := mgr.New(800, 600)
-photo := mgr.Open("input.png")
-anim := mgr.Animate(func(a *goimage.Animation) {
+cfg := goimage.DefaultConfig
+cfg.DecodeAnimation = false
+photo := goimage.Open("input.png", goimage.WithConfig(cfg))
+canvas := goimage.New(800, 600, goimage.WithConfig(cfg))
+anim := goimage.Animate(func(a *goimage.Animation) {
 	a.AddFile("frame1.png", 0.1).AddFile("frame2.png", 0.1).SetLoops(0)
-})
+}, goimage.WithConfig(cfg))
 ```
 
 ## 延迟错误

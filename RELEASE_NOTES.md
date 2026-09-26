@@ -1,3 +1,15 @@
+# v0.1.8 - Remove Manager driver abstraction
+
+`Manager` and `Driver()` are gone. Package defaults live in `DefaultConfig`. Reuse a setup with `WithConfig` on `Open`, `Decode`, `New`, and `Animate`.
+
+```go
+cfg := goimage.DefaultConfig
+cfg.DecodeAnimation = false
+img := goimage.Open("photo.jpg", goimage.WithConfig(cfg))
+```
+
+---
+
 # v0.1.7 - Idiomatic Go Redesign & Intervention V4 Standard Docs
 
 A fluent, zero-CGO image processing library for Go. Callers import one module path (`github.com/yunkeweb/go-image`) and chain `Open` → geometry / effects / drawing → `ToJPEG` / `ToWebP`. This release closes the idiomatic API, package layout, and documentation work through **v0.1.7**.

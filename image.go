@@ -462,7 +462,7 @@ func newImage(frames []Frame, cfg Config) *Image {
 }
 
 func failed(err error) *Image {
-	return &Image{err: err, exif: map[string]any{}, cfg: defaultConfig()}
+	return &Image{err: err, exif: map[string]any{}, cfg: DefaultConfig}
 }
 
 func (img *Image) fail() bool {
@@ -735,7 +735,7 @@ func (img *Image) RemoveProfile() *Image {
 
 func (img *Image) Config() Config {
 	if img == nil {
-		return defaultConfig()
+		return DefaultConfig
 	}
 	return img.cfg
 }

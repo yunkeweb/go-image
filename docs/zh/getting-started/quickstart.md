@@ -81,14 +81,12 @@ img := goimage.Open("input.png",
 )
 ```
 
-多文件共用一份配置时用 `NewManager`：
+多文件共用一份配置时用 `WithConfig`：
 
 ```go
-mgr := goimage.NewManager(
-	goimage.WithAutoOrientation(true),
-	goimage.WithDecodeAnimation(false), // 只要静态首帧
-)
-thumb := mgr.Open("photo.jpg").Cover(200, 200)
+cfg := goimage.DefaultConfig
+cfg.DecodeAnimation = false // 只要静态首帧
+thumb := goimage.Open("photo.jpg", goimage.WithConfig(cfg)).Cover(200, 200)
 ```
 
 ## 一行几何变换

@@ -24,7 +24,7 @@ go get github.com/yunkeweb/go-image@v0.1.7
 
 ## 导入
 
-调用方只导入一个模块路径。公开类型（`Image`、`Color`、`Manager`、`EncodedImage`）和全部修饰方法都在包 `goimage` 中：
+调用方只导入一个模块路径。公开类型（`Image`、`Color`、`Config`、`EncodedImage`）和全部修饰方法都在包 `goimage` 中：
 
 ```go
 package main

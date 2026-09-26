@@ -73,19 +73,16 @@ img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true))
 | `New` | canvas width and height |
 | `Animate` | frame builder callback |
 
-Functional options (`WithAutoOrientation`, `WithDecodeAnimation`, `WithBlendingColor`, `WithStrip`) apply to a single call. Reuse them with `NewManager` when many images share one config.
+Functional options (`WithAutoOrientation`, `WithDecodeAnimation`, `WithBlendingColor`, `WithStrip`) apply to a single call. Shared settings live in `Config` / `DefaultConfig` and attach with `WithConfig`:
 
 ```go
-mgr := goimage.NewManager(
-	goimage.WithAutoOrientation(true),
-	goimage.WithDecodeAnimation(true),
-	goimage.WithBlendingColor("ffffff"),
-)
-canvas := mgr.New(800, 600)
-photo := mgr.Open("input.png")
-anim := mgr.Animate(func(a *goimage.Animation) {
+cfg := goimage.DefaultConfig
+cfg.DecodeAnimation = false
+photo := goimage.Open("input.png", goimage.WithConfig(cfg))
+canvas := goimage.New(800, 600, goimage.WithConfig(cfg))
+anim := goimage.Animate(func(a *goimage.Animation) {
 	a.AddFile("frame1.png", 0.1).AddFile("frame2.png", 0.1).SetLoops(0)
-})
+}, goimage.WithConfig(cfg))
 ```
 
 ## Delayed errors

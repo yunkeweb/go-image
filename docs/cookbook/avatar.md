@@ -1,11 +1,11 @@
 # Avatar Crop
 
-User avatars are square, filled, and cropped toward the face. `Cover` with `WithAnchor("top")` keeps foreheads and eyes; the default `center` is better for landscape product shots.
+User avatars are square, filled, and cropped toward the face. `Cover` with `WithAnchor(AnchorTop)` keeps foreheads and eyes; the default `center` is better for landscape product shots.
 
 ## Pipeline
 
 1. `Open` with auto-orientation so phone JPEGs stand upright.
-2. `Cover(256, 256, WithAnchor("top"))` — exact 256×256, crop overflow.
+2. `Cover(256, 256, WithAnchor(AnchorTop))` — exact 256×256, crop overflow.
 3. `Sharpen(8)` after the downsample.
 4. Encode lossless WebP for supporting clients; JPEG quality 85 as fallback.
 
@@ -50,7 +50,7 @@ func main() {
 	img := goimage.Open("portrait.jpg",
 		goimage.WithAutoOrientation(true),
 		goimage.WithStrip(true),
-	).Cover(256, 256, goimage.WithAnchor("top"))
+	).Cover(256, 256, goimage.WithAnchor(goimage.AnchorTop))
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}

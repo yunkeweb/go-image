@@ -144,11 +144,15 @@ func TestEncodedImageErrorContract(t *testing.T) {
 	if enc.Err() == nil {
 		t.Fatal("expected encode error from failed image")
 	}
-	if _, err := enc.Result(); err == nil {
-		t.Fatal("Result should return the delayed error")
+	data, err := enc.Result()
+	if data != nil || err == nil || !errors.Is(err, enc.Err()) {
+		t.Fatalf("Result should return (nil, same Err): data=%v err=%v EncodedImage.Err=%v", data, err, enc.Err())
 	}
 	if enc.ToDataURI() != "" {
 		t.Fatal("ToDataURI should be empty on error")
+	}
+	if enc.Bytes() != nil || enc.String() != "" || enc.Size() != 0 || enc.MimeType() != "" {
+		t.Fatal("failed EncodedImage accessors must be empty")
 	}
 	n, err := enc.WriteTo(&bytes.Buffer{})
 	if err == nil || n != 0 {
@@ -160,7 +164,7 @@ func TestEncodedImageErrorContract(t *testing.T) {
 
 	ok := New(2, 2).Fill("#112233")
 	png := ok.ToPNG()
-	data, err := png.Result()
+	data, err = png.Result()
 	if err != nil || len(data) == 0 {
 		t.Fatalf("png result: %v len=%d", err, len(data))
 	}

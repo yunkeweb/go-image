@@ -62,7 +62,7 @@ import (
 func main() {
 	img := goimage.Open("logo.png").
 		Pad(512, 256,
-			goimage.WithAnchor("left"),
+			goimage.WithAnchor(goimage.AnchorLeft),
 			goimage.WithBackground("#0f172a"),
 		)
 	if err := img.Err(); err != nil {

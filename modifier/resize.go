@@ -33,7 +33,7 @@ func SizeOf(n *image.NRGBA) Size {
 }
 
 // CoverSizes computes the crop box and target size for a cover fit.
-func CoverSizes(imagesize Size, width, height int, pos string, _ bool) (crop Size, resizeTo Size, err error) {
+func CoverSizes(imagesize Size, width, height int, pos Anchor, _ bool) (crop Size, resizeTo Size, err error) {
 	r, err := NewResizer(width, height)
 	if err != nil {
 		return Size{}, Size{}, err
@@ -74,7 +74,7 @@ func PlaceOnCanvas(n *image.NRGBA, width, height int, crop Size, bg color.NRGBA)
 }
 
 // Crop extracts width×height from n using anchor and optional offset.
-func Crop(n *image.NRGBA, width, height int, anchor string, bg color.NRGBA, ox, oy int) (*image.NRGBA, error) {
+func Crop(n *image.NRGBA, width, height int, anchor Anchor, bg color.NRGBA, ox, oy int) (*image.NRGBA, error) {
 	if width < 1 || height < 1 {
 		return nil, invalidDimensions()
 	}
@@ -91,7 +91,7 @@ func Crop(n *image.NRGBA, width, height int, anchor string, bg color.NRGBA, ox, 
 }
 
 // ResizeCanvas changes the canvas size without scaling pixels.
-func ResizeCanvas(n *image.NRGBA, width, height int, anchor string, bg color.NRGBA) (*image.NRGBA, error) {
+func ResizeCanvas(n *image.NRGBA, width, height int, anchor Anchor, bg color.NRGBA) (*image.NRGBA, error) {
 	if width < 1 || height < 1 {
 		return nil, invalidDimensions()
 	}

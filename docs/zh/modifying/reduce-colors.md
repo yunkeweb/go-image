@@ -54,7 +54,7 @@ import (
 
 func main() {
 	img := goimage.Open("photo.jpg").
-		Cover(320, 240, goimage.WithAnchor("center")).
+		Cover(320, 240, goimage.WithAnchor(goimage.AnchorCenter)).
 		ReduceColors(256, "#ffffff")
 	if err := img.Err(); err != nil {
 		log.Fatal(err)

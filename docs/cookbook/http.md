@@ -62,7 +62,7 @@ func variant(w http.ResponseWriter, r *http.Request) {
 	img := goimage.Decode(r.Body,
 		goimage.WithAutoOrientation(true),
 		goimage.WithDecodeAnimation(false),
-	).Cover(800, 600, goimage.WithAnchor("center"))
+	).Cover(800, 600, goimage.WithAnchor(goimage.AnchorCenter))
 	if err := img.Err(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

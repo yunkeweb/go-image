@@ -81,7 +81,7 @@ func main() {
 		goimage.WithBlendingColor("#111827"), // JPEG 压扁透明时使用
 	).Pad(256, 256,
 		goimage.WithBackground("transparent"),
-		goimage.WithAnchor("center"),
+		goimage.WithAnchor(goimage.AnchorCenter),
 	)
 	if err := img.Err(); err != nil {
 		log.Fatal(err)

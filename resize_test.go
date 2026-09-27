@@ -45,7 +45,7 @@ func TestScaleDown(t *testing.T) {
 }
 
 func TestCover(t *testing.T) {
-	img := solid(100, 50, Color{B: 255, A: 255}).Cover(20, 20, WithAnchor("center"))
+	img := solid(100, 50, Color{B: 255, A: 255}).Cover(20, 20, WithAnchor(AnchorCenter))
 	if img.Err() != nil {
 		t.Fatal(img.Err())
 	}
@@ -59,7 +59,7 @@ func TestCover(t *testing.T) {
 }
 
 func TestContainAndPad(t *testing.T) {
-	img := solid(40, 20, Color{R: 255, A: 255}).Contain(40, 40, WithBackground("#00ff00"), WithAnchor("center"))
+	img := solid(40, 20, Color{R: 255, A: 255}).Contain(40, 40, WithBackground("#00ff00"), WithAnchor(AnchorCenter))
 	if img.Width() != 40 || img.Height() != 40 {
 		t.Fatalf("%dx%d", img.Width(), img.Height())
 	}
@@ -84,7 +84,7 @@ func TestContainAndPad(t *testing.T) {
 func TestCrop(t *testing.T) {
 	img := Create(10, 10).Fill("#ffffff")
 	img.DrawPixel(2, 2, "#ff0000")
-	got := img.Crop(3, 3, WithBackground("#000000"), WithAnchor("top-left"))
+	got := img.Crop(3, 3, WithBackground("#000000"), WithAnchor(AnchorTopLeft))
 	if got.Width() != 3 || got.Height() != 3 {
 		t.Fatalf("%dx%d", got.Width(), got.Height())
 	}
@@ -100,7 +100,7 @@ func TestCrop(t *testing.T) {
 }
 
 func TestResizeCanvas(t *testing.T) {
-	img := solid(4, 4, Color{R: 255, A: 255}).ResizeCanvas(8, 8, WithBackground("#0000ff"), WithAnchor("center"))
+	img := solid(4, 4, Color{R: 255, A: 255}).ResizeCanvas(8, 8, WithBackground("#0000ff"), WithAnchor(AnchorCenter))
 	if img.Width() != 8 || img.Height() != 8 {
 		t.Fatalf("%dx%d", img.Width(), img.Height())
 	}

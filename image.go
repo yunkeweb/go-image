@@ -123,11 +123,7 @@ func (s Size) IsPortrait() bool { return s.Width < s.Height }
 // Untyped string literals such as "center" still compile. Unknown names
 // fall through to the modifier helper; Image methods report them via Err().
 func (s Size) MovePivot(position Anchor, offsetX, offsetY int) Size {
-	a, err := ParseAnchor(string(position))
-	if err != nil {
-		a = position
-	}
-	return sizeFromMod(s.toMod().MovePivot(string(a), offsetX, offsetY))
+	return sizeFromMod(s.toMod().MovePivot(position, offsetX, offsetY))
 }
 
 // RelativePositionTo returns the vector from other.Pivot to s.Pivot.
@@ -138,11 +134,7 @@ func (s Size) RelativePositionTo(other Size) Point {
 
 // AlignPivotTo moves s so its named pivot matches ref's named pivot.
 func (s Size) AlignPivotTo(ref Size, position Anchor) Size {
-	a, err := ParseAnchor(string(position))
-	if err != nil {
-		a = position
-	}
-	return sizeFromMod(s.toMod().AlignPivotTo(ref.toMod(), string(a)))
+	return sizeFromMod(s.toMod().AlignPivotTo(ref.toMod(), position))
 }
 
 // Color is an 8-bit-per-channel sRGB color with alpha (255 = opaque).
@@ -692,6 +684,7 @@ func (img *Image) primary() *image.NRGBA {
 // and mutable metadata. EXIF []byte, slices, maps, and nested map[string]any
 // values are deep-copied. Unknown pointer types inside EXIF are not deep-copied.
 // The returned image can be modified without affecting img.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Clone() *Image {
 	if img == nil {
 		return failed(wrap(ErrRuntime, "nil image"))
@@ -764,6 +757,7 @@ func (img *Image) Origin() Origin {
 }
 
 // SetOrigin replaces the recorded decode source.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) SetOrigin(o Origin) *Image {
 	if img.fail() {
 		return img
@@ -792,6 +786,7 @@ func (img *Image) Loops() int {
 }
 
 // SetLoops stores the GIF Netscape loop count (0 means loop forever).
+// Error handling: Check img.Err() after call chain.
 func (img *Image) SetLoops(n int) *Image {
 	if img.fail() {
 		return img
@@ -830,6 +825,7 @@ func (img *Image) Colorspace() ColorspaceName {
 }
 
 // SetColorspace records a colorspace name (rgb or cmyk). Pixel data stay NRGBA.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) SetColorspace(name string) *Image {
 	if img.fail() {
 		return img
@@ -852,6 +848,7 @@ func (img *Image) Resolution() (x, y float64) {
 }
 
 // SetResolution stores dots-per-inch metadata.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) SetResolution(x, y float64) *Image {
 	if img.fail() {
 		return img
@@ -923,6 +920,7 @@ func (img *Image) ExifQuery(key string) any {
 }
 
 // SetExif replaces EXIF with a deep copy of data.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) SetExif(data map[string]any) *Image {
 	if img.fail() {
 		return img
@@ -944,6 +942,7 @@ func (img *Image) BlendingColor() Color {
 }
 
 // SetBlendingColor stores the flatten-to color used by JPEG/BMP encoding.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) SetBlendingColor(v any) *Image {
 	if img.fail() {
 		return img
@@ -976,6 +975,7 @@ func (img *Image) UnsafeProfile() []byte {
 }
 
 // SetProfile stores a copy of data as the ICC profile.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) SetProfile(data []byte) *Image {
 	if img.fail() {
 		return img
@@ -985,6 +985,7 @@ func (img *Image) SetProfile(data []byte) *Image {
 }
 
 // RemoveProfile drops the stored ICC profile.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) RemoveProfile() *Image {
 	if img.fail() {
 		return img
@@ -1060,11 +1061,9 @@ func (img *Image) releaseFrames(except int) {
 
 func applyGeometry(base geometrySettings, opts []GeometryOption) (geometrySettings, Anchor, Color, error) {
 	cfg := applyGeometryOptions(base, opts)
-	fallback := AnchorCenter
-	if strings.TrimSpace(base.anchor) != "" {
-		if a, err := ParseAnchor(base.anchor); err == nil {
-			fallback = a
-		}
+	fallback := base.anchor
+	if fallback == "" {
+		fallback = AnchorCenter
 	}
 	a, err := resolveAnchor(cfg.anchor, fallback)
 	if err != nil {
@@ -1095,6 +1094,7 @@ func (img *Image) Resize(width int, height ...int) *Image {
 }
 
 // ResizeDown scales down only; images already smaller than the target are unchanged.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) ResizeDown(width int, height ...int) *Image {
 	if img.fail() {
 		return img
@@ -1110,6 +1110,7 @@ func (img *Image) ResizeDown(width int, height ...int) *Image {
 }
 
 // Scale resizes while fitting inside the box, keeping aspect ratio.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Scale(width int, height ...int) *Image {
 	if img.fail() {
 		return img
@@ -1125,6 +1126,7 @@ func (img *Image) Scale(width int, height ...int) *Image {
 }
 
 // ScaleDown is Scale that never enlarges the image.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) ScaleDown(width int, height ...int) *Image {
 	if img.fail() {
 		return img
@@ -1145,11 +1147,11 @@ func (img *Image) Cover(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	_, anchor, _, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter)}, opts)
+	_, anchor, _, err := applyGeometry(geometrySettings{anchor: AnchorCenter}, opts)
 	if err != nil {
 		return img.setErr(err)
 	}
-	crop, resizeTo, err := modifier.CoverSizes(img.Size().toMod(), width, height, string(anchor), false)
+	crop, resizeTo, err := modifier.CoverSizes(img.Size().toMod(), width, height, anchor, false)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -1159,15 +1161,16 @@ func (img *Image) Cover(width, height int, opts ...GeometryOption) *Image {
 }
 
 // CoverDown is Cover that never enlarges the image.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) CoverDown(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	_, anchor, _, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter)}, opts)
+	_, anchor, _, err := applyGeometry(geometrySettings{anchor: AnchorCenter}, opts)
 	if err != nil {
 		return img.setErr(err)
 	}
-	crop, _, err := modifier.CoverSizes(img.Size().toMod(), width, height, string(anchor), true)
+	crop, _, err := modifier.CoverSizes(img.Size().toMod(), width, height, anchor, true)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -1183,17 +1186,19 @@ func (img *Image) CoverDown(width, height int, opts ...GeometryOption) *Image {
 
 // Fit is an alias of Cover.
 //
-// Deprecated: use Cover.
+// Deprecated: Use Cover instead.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Fit(width, height int, opts ...GeometryOption) *Image {
 	return img.Cover(width, height, opts...)
 }
 
 // Contain fits the image inside width×height and pads the remainder.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Contain(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	_, anchor, bg, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter), background: "ffffff"}, opts)
+	_, anchor, bg, err := applyGeometry(geometrySettings{anchor: AnchorCenter, background: "ffffff"}, opts)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -1206,18 +1211,19 @@ func (img *Image) Contain(width, height int, opts ...GeometryOption) *Image {
 		return img.setErr(err)
 	}
 	canvas := modifier.Size{Width: width, Height: height}
-	crop = crop.AlignPivotTo(canvas, string(anchor))
+	crop = crop.AlignPivotTo(canvas, anchor)
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.PlaceOnCanvas(n, width, height, crop, bg.NRGBA()), nil
 	})
 }
 
 // Pad is Contain that never enlarges the image.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Pad(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	_, anchor, bg, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter), background: "ffffff"}, opts)
+	_, anchor, bg, err := applyGeometry(geometrySettings{anchor: AnchorCenter, background: "ffffff"}, opts)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -1230,41 +1236,44 @@ func (img *Image) Pad(width, height int, opts ...GeometryOption) *Image {
 		return img.setErr(err)
 	}
 	canvas := modifier.Size{Width: width, Height: height}
-	crop = crop.AlignPivotTo(canvas, string(anchor))
+	crop = crop.AlignPivotTo(canvas, anchor)
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.PlaceOnCanvas(n, width, height, crop, bg.NRGBA()), nil
 	})
 }
 
 // Crop extracts width×height from the anchor (default top-left).
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Crop(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	cfg, anchor, bg, err := applyGeometry(geometrySettings{anchor: string(AnchorTopLeft), background: "ffffff"}, opts)
+	cfg, anchor, bg, err := applyGeometry(geometrySettings{anchor: AnchorTopLeft, background: "ffffff"}, opts)
 	if err != nil {
 		return img.setErr(err)
 	}
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.Crop(n, width, height, string(anchor), bg.NRGBA(), cfg.offsetX, cfg.offsetY)
+		return modifier.Crop(n, width, height, anchor, bg.NRGBA(), cfg.offsetX, cfg.offsetY)
 	})
 }
 
 // ResizeCanvas changes the canvas size without scaling pixels.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) ResizeCanvas(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	_, anchor, bg, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter), background: "ffffff"}, opts)
+	_, anchor, bg, err := applyGeometry(geometrySettings{anchor: AnchorCenter, background: "ffffff"}, opts)
 	if err != nil {
 		return img.setErr(err)
 	}
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.ResizeCanvas(n, width, height, string(anchor), bg.NRGBA())
+		return modifier.ResizeCanvas(n, width, height, anchor, bg.NRGBA())
 	})
 }
 
 // ResizeCanvasRelative adds width and height to the current canvas size.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) ResizeCanvasRelative(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
@@ -1273,6 +1282,7 @@ func (img *Image) ResizeCanvasRelative(width, height int, opts ...GeometryOption
 }
 
 // Trim crops uniform border pixels. Animated images set ErrNotSupported.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Trim(tolerance int) *Image {
 	if img.fail() {
 		return img
@@ -1291,6 +1301,7 @@ func (img *Image) Trim(tolerance int) *Image {
 }
 
 // Greyscale converts every frame to luma, keeping alpha.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Greyscale() *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Greyscale(n), nil
@@ -1298,6 +1309,7 @@ func (img *Image) Greyscale() *Image {
 }
 
 // Invert inverts RGB channels and keeps alpha.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Invert() *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Invert(n), nil
@@ -1305,6 +1317,7 @@ func (img *Image) Invert() *Image {
 }
 
 // Brightness adjusts luma by level percent (-100..100).
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Brightness(level int) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Brightness(n, level), nil
@@ -1312,6 +1325,7 @@ func (img *Image) Brightness(level int) *Image {
 }
 
 // Contrast adjusts contrast by level percent.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Contrast(level int) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Contrast(n, level), nil
@@ -1319,6 +1333,7 @@ func (img *Image) Contrast(level int) *Image {
 }
 
 // Gamma applies a gamma curve. Non-positive gamma sets ErrInput.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Gamma(gamma float64) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Gamma(n, gamma)
@@ -1326,6 +1341,7 @@ func (img *Image) Gamma(gamma float64) *Image {
 }
 
 // Colorize tints RGB channels by signed percent deltas.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Colorize(red, green, blue int) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Colorize(n, red, green, blue), nil
@@ -1333,6 +1349,7 @@ func (img *Image) Colorize(red, green, blue int) *Image {
 }
 
 // Pixelate mosaics every frame with square cells of the given size.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Pixelate(size int) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Pixelate(n, size), nil
@@ -1340,6 +1357,7 @@ func (img *Image) Pixelate(size int) *Image {
 }
 
 // Blur applies a box blur of the given radius.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Blur(amount int) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Blur(n, amount), nil
@@ -1347,6 +1365,7 @@ func (img *Image) Blur(amount int) *Image {
 }
 
 // Sharpen applies an unsharp-mask of the given amount.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Sharpen(amount int) *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Sharpen(n, amount), nil
@@ -1354,6 +1373,7 @@ func (img *Image) Sharpen(amount int) *Image {
 }
 
 // BlendTransparency composites every frame over col (or the blending color).
+// Error handling: Check img.Err() after call chain.
 func (img *Image) BlendTransparency(col any) *Image {
 	if img.fail() {
 		return img
@@ -1374,6 +1394,7 @@ func (img *Image) BlendTransparency(col any) *Image {
 }
 
 // ReduceColors quantizes every frame to at most limit palette entries.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) ReduceColors(limit int, background any) *Image {
 	if img.fail() {
 		return img
@@ -1393,6 +1414,7 @@ func (img *Image) ReduceColors(limit int, background any) *Image {
 }
 
 // RemoveAnimation keeps one frame (index or "0%".."100%") and drops the rest.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) RemoveAnimation(position any) *Image {
 	if img.fail() {
 		return img
@@ -1412,6 +1434,7 @@ func (img *Image) RemoveAnimation(position any) *Image {
 }
 
 // SliceAnimation keeps length frames starting at offset.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) SliceAnimation(offset int, length int) *Image {
 	if img.fail() {
 		return img
@@ -1437,6 +1460,7 @@ func (img *Image) SliceAnimation(offset int, length int) *Image {
 }
 
 // Flip mirrors every frame vertically.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Flip() *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Flip(n), nil
@@ -1444,6 +1468,7 @@ func (img *Image) Flip() *Image {
 }
 
 // Flop mirrors every frame horizontally.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Flop() *Image {
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.Flop(n), nil
@@ -1452,6 +1477,7 @@ func (img *Image) Flop() *Image {
 
 // Rotate turns every frame by angle degrees around its center.
 // Invalid background colors set Err() even when angle normalizes to 0.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Rotate(angle float64, background any) *Image {
 	if img.fail() {
 		return img
@@ -1475,6 +1501,7 @@ func (img *Image) Rotate(angle float64, background any) *Image {
 // Orient applies EXIF orientation 1..8 to pixel data, then deletes
 // Orientation, IFD0.Orientation, and EXIF.Orientation so viewers do not
 // rotate the image a second time. Integer and floating EXIF values are accepted.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Orient() *Image {
 	if img.fail() {
 		return img
@@ -1487,7 +1514,8 @@ func (img *Image) Orient() *Image {
 
 // Orientate is an alias of Orient.
 //
-// Deprecated: use Orient.
+// Deprecated: Use Orient instead.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Orientate() *Image { return img.Orient() }
 
 func (img *Image) clearOrientation() {
@@ -1556,7 +1584,7 @@ func (img *Image) Place(src image.Image, position Anchor, options ...PlaceOption
 	if src == nil {
 		return img.setErr(wrap(ErrInput, "nil watermark"))
 	}
-	anchor, err := ParseAnchor(string(position))
+	anchor, err := position.Canonical()
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -1572,7 +1600,7 @@ func (img *Image) Place(src image.Image, position Anchor, options ...PlaceOption
 		defer pool.Release(overlay)
 	}
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.Place(n, overlay, string(anchor), cfg.offsetX, cfg.offsetY, cfg.opacity), nil
+		return modifier.Place(n, overlay, anchor, cfg.offsetX, cfg.offsetY, cfg.opacity), nil
 	})
 }
 
@@ -1658,6 +1686,7 @@ func nrgbaPtr(v any) (*color.NRGBA, error) {
 }
 
 // DrawPixel sets the pixel at (x, y) on every frame.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) DrawPixel(x, y int, col any) *Image {
 	if img.fail() {
 		return img
@@ -1689,6 +1718,7 @@ func (img *Image) Fill(col any) *Image {
 
 // FloodFill replaces the 4-connected region of equal color at (x, y) with col
 // on every frame.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) FloodFill(x, y int, col any) *Image {
 	if img.fail() {
 		return img
@@ -1703,6 +1733,7 @@ func (img *Image) FloodFill(x, y int, col any) *Image {
 }
 
 // DrawRectangle paints a rectangle whose top-left is (x, y).
+// Error handling: Check img.Err() after call chain.
 func (img *Image) DrawRectangle(x, y int, init func(*Drawable)) *Image {
 	if img.fail() {
 		return img
@@ -1725,6 +1756,7 @@ func (img *Image) DrawRectangle(x, y int, init func(*Drawable)) *Image {
 }
 
 // DrawEllipse paints an ellipse centered at (x, y).
+// Error handling: Check img.Err() after call chain.
 func (img *Image) DrawEllipse(x, y int, init func(*Drawable)) *Image {
 	if img.fail() {
 		return img
@@ -1751,6 +1783,7 @@ func (img *Image) DrawEllipse(x, y int, init func(*Drawable)) *Image {
 }
 
 // DrawCircle paints a circle centered at (x, y).
+// Error handling: Check img.Err() after call chain.
 func (img *Image) DrawCircle(x, y int, init func(*Drawable)) *Image {
 	if img.fail() {
 		return img
@@ -1777,6 +1810,7 @@ func (img *Image) DrawCircle(x, y int, init func(*Drawable)) *Image {
 }
 
 // DrawPolygon paints the polygon described by Drawable.Points.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) DrawPolygon(init func(*Drawable)) *Image {
 	if img.fail() {
 		return img
@@ -1799,6 +1833,7 @@ func (img *Image) DrawPolygon(init func(*Drawable)) *Image {
 }
 
 // DrawLine paints a stroke between Drawable.X1/Y1 and X2/Y2.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) DrawLine(init func(*Drawable)) *Image {
 	d := &Drawable{BorderSize: 1, BorderColor: "#000000"}
 	if init != nil {
@@ -1825,6 +1860,7 @@ func (img *Image) DrawLine(init func(*Drawable)) *Image {
 }
 
 // DrawBezier paints a quadratic/cubic path through Drawable.Points.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) DrawBezier(init func(*Drawable)) *Image {
 	d := &Drawable{BorderSize: 1, BorderColor: "#000000"}
 	if init != nil {
@@ -1863,6 +1899,7 @@ type Font struct {
 }
 
 // NewFont returns a Font. An optional filename loads a TTF/OTF file.
+// Error handling: Check img.Err() after call chain.
 func NewFont(filename ...string) *Font {
 	f := &Font{
 		size:        12,
@@ -1886,7 +1923,8 @@ func (f *Font) Filename(path string) *Font {
 
 // File is an alias of Filename.
 //
-// Deprecated: use Filename.
+// Deprecated: Use Filename instead.
+// Error handling: Check img.Err() after call chain.
 func (f *Font) File(path string) *Font { return f.Filename(path) }
 
 // Size sets the em size in pixels.
@@ -1944,6 +1982,7 @@ func applyFontInit(v any) (*Font, error) {
 }
 
 // Text draws text at (x, y) using fontInit (*Font, Font, or func(*Font)).
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Text(text string, x, y int, fontInit any) *Image {
 	if img.fail() {
 		return img
@@ -2122,7 +2161,7 @@ func (img *Image) ToJPEG(quality ...int) EncodedImage {
 }
 // ToJPG is an alias of ToJPEG.
 //
-// Deprecated: use ToJPEG.
+// Deprecated: Use ToJPEG instead.
 func (img *Image) ToJPG(quality ...int) EncodedImage { return img.ToJPEG(quality...) }
 
 // ToPNG encodes a PNG. At most one EncodeOptions value is accepted.
@@ -2143,7 +2182,7 @@ func (img *Image) ToBMP(opts ...EncodeOptions) EncodedImage {
 
 // ToBitmap is an alias of ToBMP.
 //
-// Deprecated: use ToBMP.
+// Deprecated: Use ToBMP instead.
 func (img *Image) ToBitmap(opts ...EncodeOptions) EncodedImage { return img.ToBMP(opts...) }
 
 // ToTIFF encodes a TIFF.
@@ -2151,7 +2190,7 @@ func (img *Image) ToTIFF(opts ...EncodeOptions) EncodedImage { return img.Encode
 
 // ToTIF is an alias of ToTIFF.
 //
-// Deprecated: use ToTIFF.
+// Deprecated: Use ToTIFF instead.
 func (img *Image) ToTIF(opts ...EncodeOptions) EncodedImage { return img.ToTIFF(opts...) }
 
 // ToJPEG2000 returns ErrNotSupported; the Go driver does not encode JPEG 2000.
@@ -2161,7 +2200,7 @@ func (img *Image) ToJPEG2000(opts ...EncodeOptions) EncodedImage {
 
 // ToJP2 is an alias of ToJPEG2000.
 //
-// Deprecated: use ToJPEG2000.
+// Deprecated: Use ToJPEG2000 instead.
 func (img *Image) ToJP2(opts ...EncodeOptions) EncodedImage { return img.ToJPEG2000(opts...) }
 
 // ToAVIF returns ErrNotSupported; the Go driver does not encode AVIF.
@@ -2174,6 +2213,7 @@ func (img *Image) ToHEIC(opts ...EncodeOptions) EncodedImage {
 }
 
 // Save encodes img using the path extension and writes the file.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Save(path string, opts ...EncodeOptions) *Image {
 	if img.fail() {
 		return img
@@ -2214,14 +2254,29 @@ func (e EncodedImage) Result() ([]byte, error) {
 	return e.Data, nil
 }
 
-// Bytes returns the encoded payload. It may be nil when Err is set.
-func (e EncodedImage) Bytes() []byte { return e.Data }
+// Bytes returns the encoded payload. It is nil when Err is set.
+func (e EncodedImage) Bytes() []byte {
+	if e.err != nil {
+		return nil
+	}
+	return e.Data
+}
 
-// MimeType returns the encoded media type.
-func (e EncodedImage) MimeType() string { return e.MediaType }
+// MimeType returns the encoded media type. It is empty when Err is set.
+func (e EncodedImage) MimeType() string {
+	if e.err != nil {
+		return ""
+	}
+	return e.MediaType
+}
 
-// Size returns the payload length in bytes.
-func (e EncodedImage) Size() int { return len(e.Data) }
+// Size returns the payload length in bytes. It is 0 when Err is set.
+func (e EncodedImage) Size() int {
+	if e.err != nil {
+		return 0
+	}
+	return len(e.Data)
+}
 
 // ToDataURI returns a data: URI for the payload. An empty string is returned
 // when Err is set.
@@ -2232,8 +2287,13 @@ func (e EncodedImage) ToDataURI() string {
 	return "data:" + e.MediaType + ";base64," + base64.StdEncoding.EncodeToString(e.Data)
 }
 
-// String returns the payload as a Go string.
-func (e EncodedImage) String() string { return string(e.Data) }
+// String returns the payload as a Go string. It is empty when Err is set.
+func (e EncodedImage) String() string {
+	if e.err != nil {
+		return ""
+	}
+	return string(e.Data)
+}
 
 // WriteTo writes the payload to w. A delayed encode error is returned first.
 func (e EncodedImage) WriteTo(w io.Writer) (int64, error) {

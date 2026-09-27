@@ -64,7 +64,7 @@ import (
 
 func main() {
 	img := goimage.Open("portrait.jpg", goimage.WithAutoOrientation(true)).
-		CoverDown(400, 400, goimage.WithAnchor("top"))
+		CoverDown(400, 400, goimage.WithAnchor(goimage.AnchorTop))
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}
@@ -76,6 +76,6 @@ func main() {
 
 ## Notes
 
-- Faces near the top of a portrait often look better with `WithAnchor("top")`.
+- Faces near the top of a portrait often look better with `WithAnchor(AnchorTop)`.
 - `Fit` is identical to `Cover` in this library.
 - For letterboxing without crop, use [Contain](/modifying/contain).

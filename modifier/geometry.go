@@ -3,7 +3,6 @@ package modifier
 
 import (
 	"math"
-	"strings"
 
 	"github.com/yunkeweb/go-image/internal/errs"
 )
@@ -39,7 +38,7 @@ func (s Size) IsLandscape() bool { return s.Width > s.Height }
 func (s Size) IsPortrait() bool { return s.Width < s.Height }
 
 // MovePivot sets the 9-point pivot named by position, plus an extra offset.
-func (s Size) MovePivot(position string, offsetX, offsetY int) Size {
+func (s Size) MovePivot(position Anchor, offsetX, offsetY int) Size {
 	s.Pivot = PivotPoint(s.Width, s.Height, position, offsetX, offsetY)
 	return s
 }
@@ -50,7 +49,7 @@ func (s Size) RelativePositionTo(other Size) Point {
 }
 
 // AlignPivotTo moves s so its named pivot matches ref's named pivot.
-func (s Size) AlignPivotTo(ref Size, position string) Size {
+func (s Size) AlignPivotTo(ref Size, position Anchor) Size {
 	reference := Size{Width: ref.Width, Height: ref.Height}.MovePivot(position, 0, 0)
 	moved := s.MovePivot(position, 0, 0)
 	moved.Pivot = reference.RelativePositionTo(moved)
@@ -223,28 +222,4 @@ func (r Resizer) ContainDown(size Size) (Size, error) {
 		out.Height = min(size.Height, r.Height)
 	}
 	return out, nil
-}
-
-// PivotPoint returns the 9-point anchor for a w×h rectangle.
-func PivotPoint(w, h int, position string, ox, oy int) Point {
-	switch strings.ToLower(strings.TrimSpace(position)) {
-	case "top", "top-center", "top-middle", "center-top", "middle-top":
-		return Point{X: int(math.Round(float64(w)/2)) + ox, Y: oy}
-	case "top-right", "right-top":
-		return Point{X: w - ox, Y: oy}
-	case "left", "left-center", "left-middle", "center-left", "middle-left":
-		return Point{X: ox, Y: int(math.Round(float64(h)/2)) + oy}
-	case "right", "right-center", "right-middle", "center-right", "middle-right":
-		return Point{X: w - ox, Y: int(math.Round(float64(h)/2)) + oy}
-	case "bottom-left", "left-bottom":
-		return Point{X: ox, Y: h - oy}
-	case "bottom", "bottom-center", "bottom-middle", "center-bottom", "middle-bottom":
-		return Point{X: int(math.Round(float64(w)/2)) + ox, Y: h - oy}
-	case "bottom-right", "right-bottom":
-		return Point{X: w - ox, Y: h - oy}
-	case "center", "middle", "center-center", "middle-middle":
-		return Point{X: int(math.Round(float64(w)/2)) + ox, Y: int(math.Round(float64(h)/2)) + oy}
-	default: // top-left / left-top
-		return Point{X: ox, Y: oy}
-	}
 }

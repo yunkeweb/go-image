@@ -1,11 +1,11 @@
 # 头像裁剪
 
-用户头像是正方形、填满盒子、并偏向面部裁切。`Cover` 配合 `WithAnchor("top")` 保住额头和眼睛；横向产品图更适合默认的 `center`。
+用户头像是正方形、填满盒子、并偏向面部裁切。`Cover` 配合 `WithAnchor(AnchorTop)` 保住额头和眼睛；横向产品图更适合默认的 `center`。
 
 ## 流水线
 
 1. `Open` 打开自动方向，让手机 JPEG 扶正。
-2. `Cover(256, 256, WithAnchor("top"))` — 精确 256×256，裁掉溢出。
+2. `Cover(256, 256, WithAnchor(AnchorTop))` — 精确 256×256，裁掉溢出。
 3. 降采样后 `Sharpen(8)`。
 4. 支持的客户端用无损 WebP；回退 JPEG 质量 85。
 
@@ -50,7 +50,7 @@ func main() {
 	img := goimage.Open("portrait.jpg",
 		goimage.WithAutoOrientation(true),
 		goimage.WithStrip(true),
-	).Cover(256, 256, goimage.WithAnchor("top"))
+	).Cover(256, 256, goimage.WithAnchor(goimage.AnchorTop))
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}

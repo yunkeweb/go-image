@@ -55,7 +55,7 @@ import (
 
 func main() {
 	img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true)).
-		Cover(400, 300, goimage.WithAnchor("center")).
+		Cover(400, 300, goimage.WithAnchor(goimage.AnchorCenter)).
 		Greyscale().
 		Sharpen(8)
 	if err := img.Err(); err != nil {

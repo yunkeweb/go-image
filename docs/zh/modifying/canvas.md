@@ -62,7 +62,7 @@ import (
 func main() {
 	img := goimage.Open("icon.png").
 		ResizeCanvasRelative(32, 32,
-			goimage.WithAnchor("center"),
+			goimage.WithAnchor(goimage.AnchorCenter),
 			goimage.WithBackground("transparent"),
 		)
 	if err := img.Err(); err != nil {

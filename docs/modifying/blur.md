@@ -53,7 +53,7 @@ import (
 
 func main() {
 	img := goimage.Open("photo.jpg").
-		Cover(800, 450, goimage.WithAnchor("center")).
+		Cover(800, 450, goimage.WithAnchor(goimage.AnchorCenter)).
 		Blur(12)
 	if err := img.Err(); err != nil {
 		log.Fatal(err)

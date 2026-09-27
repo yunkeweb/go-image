@@ -41,17 +41,31 @@ func TestResizeDownDoesNotUpsize(t *testing.T) {
 }
 
 func TestPivotPositions(t *testing.T) {
-	s := Size{Width: 100, Height: 40}.MovePivot("center", 0, 0)
+	s := Size{Width: 100, Height: 40}.MovePivot(AnchorCenter, 0, 0)
 	if s.Pivot.X != 50 || s.Pivot.Y != 20 {
 		t.Fatalf("center %+v", s.Pivot)
 	}
-	s = Size{Width: 100, Height: 40}.MovePivot("bottom-right", 2, 3)
+	s = Size{Width: 100, Height: 40}.MovePivot(AnchorBottomRight, 2, 3)
 	if s.Pivot.X != 98 || s.Pivot.Y != 37 {
 		t.Fatalf("br %+v", s.Pivot)
 	}
-	s = Size{Width: 100, Height: 40}.MovePivot("top-left", 1, 2)
+	s = Size{Width: 100, Height: 40}.MovePivot(AnchorTopLeft, 1, 2)
 	if s.Pivot.X != 1 || s.Pivot.Y != 2 {
 		t.Fatalf("tl %+v", s.Pivot)
+	}
+}
+
+func TestCoverSizesTypedAnchor(t *testing.T) {
+	src := Size{Width: 200, Height: 100}
+	crop, resizeTo, err := CoverSizes(src, 50, 50, AnchorCenter, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if crop.Width != 100 || crop.Height != 100 {
+		t.Fatalf("crop %+v", crop)
+	}
+	if resizeTo.Width != 50 || resizeTo.Height != 50 {
+		t.Fatalf("resizeTo %+v", resizeTo)
 	}
 }
 

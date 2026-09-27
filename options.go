@@ -1,6 +1,10 @@
 package goimage
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/yunkeweb/go-image/modifier"
+)
 
 // Config holds decode and encode defaults for a single Open/Decode/New/Animate call.
 // Values are copied into each Image; mutating a Config after the call does not
@@ -58,59 +62,35 @@ func WithConfig(c Config) Option {
 
 // Anchor is a 9-point pivot used by Cover, Crop, Place, and related helpers.
 // String literals such as "center" still convert; prefer the exported constants.
-type Anchor string
+type Anchor = modifier.Anchor
 
 const (
-	AnchorTopLeft      Anchor = "top-left"
-	AnchorTop          Anchor = "top"
-	AnchorTopRight     Anchor = "top-right"
-	AnchorLeft         Anchor = "left"
-	AnchorCenter       Anchor = "center"
-	AnchorRight        Anchor = "right"
-	AnchorBottomLeft   Anchor = "bottom-left"
-	AnchorBottom       Anchor = "bottom"
-	AnchorBottomRight  Anchor = "bottom-right"
+	AnchorTopLeft      = modifier.AnchorTopLeft
+	AnchorTop          = modifier.AnchorTop
+	AnchorTopRight     = modifier.AnchorTopRight
+	AnchorLeft         = modifier.AnchorLeft
+	AnchorCenter       = modifier.AnchorCenter
+	AnchorRight        = modifier.AnchorRight
+	AnchorBottomLeft   = modifier.AnchorBottomLeft
+	AnchorBottom       = modifier.AnchorBottom
+	AnchorBottomRight  = modifier.AnchorBottomRight
 )
-
-// String returns the canonical hyphenated name.
-func (a Anchor) String() string { return string(a) }
 
 // ParseAnchor canonicalizes a 9-point position name or a documented synonym.
 // Unknown values return ErrGeometry; they are never treated as top-left.
 func ParseAnchor(s string) (Anchor, error) {
-	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "top-left", "left-top":
-		return AnchorTopLeft, nil
-	case "top", "top-center", "top-middle", "center-top", "middle-top":
-		return AnchorTop, nil
-	case "top-right", "right-top":
-		return AnchorTopRight, nil
-	case "left", "left-center", "left-middle", "center-left", "middle-left":
-		return AnchorLeft, nil
-	case "center", "middle", "center-center", "middle-middle":
-		return AnchorCenter, nil
-	case "right", "right-center", "right-middle", "center-right", "middle-right":
-		return AnchorRight, nil
-	case "bottom-left", "left-bottom":
-		return AnchorBottomLeft, nil
-	case "bottom", "bottom-center", "bottom-middle", "center-bottom", "middle-bottom":
-		return AnchorBottom, nil
-	case "bottom-right", "right-bottom":
-		return AnchorBottomRight, nil
-	default:
-		return "", wrap(ErrGeometry, "invalid anchor %q", s)
-	}
+	return modifier.ParseAnchor(s)
 }
 
-func resolveAnchor(raw string, fallback Anchor) (Anchor, error) {
-	if strings.TrimSpace(raw) == "" {
+func resolveAnchor(raw Anchor, fallback Anchor) (Anchor, error) {
+	if strings.TrimSpace(string(raw)) == "" {
 		return fallback, nil
 	}
-	return ParseAnchor(raw)
+	return ParseAnchor(string(raw))
 }
 
 type geometrySettings struct {
-	anchor     string
+	anchor     Anchor
 	background any
 	offsetX    int
 	offsetY    int
@@ -129,7 +109,7 @@ type PlaceOption = GeometryOption
 func WithAnchor(anchor Anchor) GeometryOption {
 	return func(s *geometrySettings) {
 		if strings.TrimSpace(string(anchor)) != "" {
-			s.anchor = string(anchor)
+			s.anchor = anchor
 		}
 	}
 }

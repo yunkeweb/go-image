@@ -63,7 +63,7 @@ import (
 func main() {
 	img := goimage.Open("photo.jpg").
 		Crop(400, 300,
-			goimage.WithAnchor("center"),
+			goimage.WithAnchor(goimage.AnchorCenter),
 			goimage.WithOffset(8, 0), // 相对中心向右 8px
 		)
 	if err := img.Err(); err != nil {

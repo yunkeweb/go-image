@@ -64,7 +64,7 @@ import (
 
 func main() {
 	img := goimage.Open("portrait.jpg", goimage.WithAutoOrientation(true)).
-		CoverDown(400, 400, goimage.WithAnchor("top"))
+		CoverDown(400, 400, goimage.WithAnchor(goimage.AnchorTop))
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}
@@ -76,6 +76,6 @@ func main() {
 
 ## 注意细节
 
-- 人像面部靠近顶部时，常用 `WithAnchor("top")`。
+- 人像面部靠近顶部时，常用 `WithAnchor(AnchorTop)`。
 - 本库中 `Fit` 与 `Cover` 完全相同。
 - 需要留边而不裁切时用 [Contain](/zh/modifying/contain)。

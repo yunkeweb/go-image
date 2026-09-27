@@ -79,12 +79,12 @@ func main() {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		_ = base.Clone().Cover(400, 300, goimage.WithAnchor("center")).
+		_ = base.Clone().Cover(400, 300, goimage.WithAnchor(goimage.AnchorCenter)).
 			ToWebP().Save("hero-sm.webp")
 	}()
 	go func() {
 		defer wg.Done()
-		_ = base.Clone().Cover(1200, 630, goimage.WithAnchor("center")).
+		_ = base.Clone().Cover(1200, 630, goimage.WithAnchor(goimage.AnchorCenter)).
 			ToWebP().Save("hero-og.webp")
 	}()
 	wg.Wait()

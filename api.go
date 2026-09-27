@@ -41,7 +41,8 @@ func New(width, height int, opts ...Option) *Image {
 
 // Create is an alias of New.
 //
-// Deprecated: use New.
+// Deprecated: Use New instead.
+// Error handling: Check img.Err() after call chain.
 func Create(width, height int, opts ...Option) *Image {
 	return New(width, height, opts...)
 }
@@ -68,6 +69,7 @@ func Decode(r io.Reader, opts ...Option) *Image {
 }
 
 // DecodeBytes decodes an image from encoded bytes (JPEG, PNG, GIF, WebP, BMP, TIFF).
+// Error handling: Check img.Err() after call chain.
 func DecodeBytes(data []byte, opts ...Option) *Image {
 	cfg, fail := configOrFailed(opts)
 	if fail != nil {
@@ -77,6 +79,7 @@ func DecodeBytes(data []byte, opts ...Option) *Image {
 }
 
 // DecodeDataURI decodes a `data:image/...;base64,...` URI.
+// Error handling: Check img.Err() after call chain.
 func DecodeDataURI(uri string, opts ...Option) *Image {
 	cfg, fail := configOrFailed(opts)
 	if fail != nil {
@@ -88,6 +91,7 @@ func DecodeDataURI(uri string, opts ...Option) *Image {
 // FromImage copies src into a library-owned NRGBA buffer with draw.Draw.
 // YCbCr, Paletted, RGBA, NRGBA, and other image.Image values are safe: the
 // original Pix slice is never retained.
+// Error handling: Check img.Err() after call chain.
 func FromImage(src image.Image, opts ...Option) *Image {
 	cfg, fail := configOrFailed(opts)
 	if fail != nil {
@@ -97,6 +101,7 @@ func FromImage(src image.Image, opts ...Option) *Image {
 }
 
 // Animate builds a multi-frame GIF. Options apply to the resulting image.
+// Error handling: Check img.Err() after call chain.
 func Animate(init func(*Animation), opts ...Option) *Image {
 	cfg, fail := configOrFailed(opts)
 	if fail != nil {
@@ -253,6 +258,7 @@ type Animation struct {
 }
 
 // Add appends a clone of src's frames with the given delay in seconds.
+// Error handling: Check img.Err() after call chain.
 func (a *Animation) Add(src *Image, delaySeconds float64) *Animation {
 	if a.err != nil {
 		return a
@@ -274,12 +280,14 @@ func (a *Animation) Add(src *Image, delaySeconds float64) *Animation {
 
 // AddImage is an alias of Add.
 //
-// Deprecated: use Add.
+// Deprecated: Use Add instead.
+// Error handling: Check img.Err() after call chain.
 func (a *Animation) AddImage(src *Image, delaySeconds float64) *Animation {
 	return a.Add(src, delaySeconds)
 }
 
 // AddFile decodes path and appends it as a frame.
+// Error handling: Check img.Err() after call chain.
 func (a *Animation) AddFile(path string, delaySeconds float64) *Animation {
 	if a.err != nil {
 		return a
@@ -293,6 +301,7 @@ func (a *Animation) AddFile(path string, delaySeconds float64) *Animation {
 }
 
 // SetLoops stores the Netscape loop count (0 means loop forever).
+// Error handling: Check img.Err() after call chain.
 func (a *Animation) SetLoops(n int) *Animation {
 	a.loops = n
 	return a
@@ -300,7 +309,8 @@ func (a *Animation) SetLoops(n int) *Animation {
 
 // Loops is an alias of SetLoops.
 //
-// Deprecated: use SetLoops.
+// Deprecated: Use SetLoops instead.
+// Error handling: Check img.Err() after call chain.
 func (a *Animation) Loops(n int) *Animation { return a.SetLoops(n) }
 
 func parsePercentOrIndex(v any, total int) (int, error) {

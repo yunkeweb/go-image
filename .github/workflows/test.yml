@@ -18,6 +18,9 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Format
+        run: test -z "$(gofmt -l .)"
+
       - name: Vet
         run: go vet ./...
 
@@ -35,6 +38,22 @@ jobs:
 
       - name: Fuzz
         run: |
-          go test -fuzz=FuzzDecodeBytes -fuzztime=8s .
-          go test -fuzz=FuzzDecodeDataURI -fuzztime=5s .
-          go test -fuzz=FuzzVP8LRoundTrip -fuzztime=8s ./encoder
+          go test -fuzz=FuzzDecodeDataURI -fuzztime=8s .
+          go test -fuzz=FuzzParseJPEGExif -fuzztime=8s .
+          go test -fuzz=FuzzDecodeGIF -fuzztime=8s .
+          go test -fuzz=FuzzDecodeWebP -fuzztime=8s .
+          go test -fuzz=FuzzParseColor -fuzztime=8s .
+          go test -fuzz=FuzzDecodeBytes -fuzztime=5s .
+          go test -fuzz=FuzzVP8LRoundTrip -fuzztime=5s ./encoder
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        run: npm install
+      - name: Build docs
+        run: npm run docs:build

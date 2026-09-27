@@ -1,3 +1,62 @@
+# v0.3.0 - Decode Limits, strict EncodeOptions, and quality gates
+
+`v0.3.0` is the server-oriented stability release. Decode paths honor resource caps, unimplemented encode options fail instead of being ignored, Data URI / JPEG EXIF / GIF inputs are parsed with explicit errors, and CI runs format, vet, shuffle, race, coverage, short benchmarks, fuzz smoke tests, and the VitePress docs build.
+
+```bash
+go get github.com/yunkeweb/go-image@v0.3.0
+```
+
+## Added
+
+- `Limits` / `WithLimits` on `Open`, `Decode`, `DecodeBytes`, `DecodeDataURI`, `New`, and `FromImage`:
+  - `MaxInputBytes` — encoded input size (`io.Reader` is drained with `io.LimitReader`)
+  - `MaxWidth` / `MaxHeight`
+  - `MaxPixels` — `width × height` for still images, `width × height × frames` for GIF
+  - `MaxFrames` — GIF frame count, counted before pixel allocation
+  - Integer overflow in the pixel product is treated as over-limit
+  - Zero fields remain unlimited (the default)
+- Public sentinel `ErrLimit` (`errors.Is`)
+- WebP lossless VP8L encode/decode round-trip tests (opaque, alpha, 1×1, non-zero bounds, `x/image/webp`, truncated/corrupt)
+- Benchmarks: `BenchmarkDecodeJPEG`, `BenchmarkDecodePNG`, `BenchmarkResize`, `BenchmarkClone`, `BenchmarkEncodeJPEG`, `BenchmarkEncodePNG`, `BenchmarkEncodeWebP`, `BenchmarkGIFDecode`, `BenchmarkGIFEncode`
+- Fuzz targets: `FuzzDecodeDataURI`, `FuzzParseJPEGExif`, `FuzzDecodeGIF`, `FuzzDecodeWebP`, `FuzzParseColor` (plus `FuzzDecodeBytes` / `FuzzVP8LRoundTrip`)
+- CI matrix: Go 1.22 and `stable`; `gofmt`, `go vet`, `go test -shuffle=on`, `-race`, coverage, short benchmarks, fuzz smoke, docs build
+- Dependabot for Go modules, GitHub Actions, and npm
+
+## Changed
+
+- `EncodeOptions` support matrix is enforced. Only JPEG `Quality` is implemented (0 → 80, clamp 1–100). `Progressive`, `Indexed`, `Interlaced`, non-zero `Bitdepth`, and `Quality` on PNG/GIF/WebP/BMP/TIFF return `ErrNotSupported`.
+- WebP encode remains lossless VP8L; `Quality` is not applied.
+- Data URI parsing follows `data:[mediatype][;base64],data`:
+  - `;base64` is a case-insensitive flag parameter, not a substring match
+  - standard Base64, no-padding Base64, and newline-wrapped Base64
+  - URL percent-decoding of the payload
+  - `image/*` media types only; unknown parameters, illegal percent-encoding, illegal Base64, and empty payloads return `ErrDecoder`
+- If GIF frame counting fails, decode returns an error. Truncated or corrupt GIF is not treated as a still image.
+- JPEG EXIF orientation reads little- and big-endian TIFF, orientations 1–8, and ignores truncated APP1, illegal lengths, missing/illegal Orientation, wrong types, extra APP segments, and later APP1 after a non-Exif APP1.
+
+## Compatibility
+
+- Existing callers that never set `Limits` are unchanged (all zeros = unlimited).
+- Callers that passed unimplemented `EncodeOptions` fields as `true` / non-zero now receive `ErrNotSupported` instead of a silent encode.
+- `DecodeDataURI` now rejects non-`image/*` types and unknown parameters. Previously a `text/plain` or `;charset=notbase64` URI could be misread.
+- Truncated GIF that still starts with `GIF8xa` now fails closed via `ErrDecoder` rather than a one-frame fallback.
+
+## Known limitations
+
+- WebP encode is lossless VP8L only; there is no lossy WebP, no WebP animation, and `Quality` is unused.
+- JPEG encode supports quality only. Progressive JPEG, PNG palette/bit depth/interlace, and ICC/EXIF rewrite are not implemented.
+- EXIF handling is orientation (tag 0x0112) on JPEG decode. Other EXIF tags are not preserved through encode.
+- Decode of `io.Reader` still buffers up to `MaxInputBytes` (or the full stream when unlimited). This is not a pixel-streaming pipeline.
+- `Image` is not safe for concurrent mutation; `Clone()` before sharing one source across goroutines.
+- AVIF, HEIC, and JPEG 2000 remain `ErrNotSupported`.
+- Default `Limits` are unlimited. Server handlers should set caps explicitly (see the HTTP cookbook).
+
+## Documentation
+
+README (English and 简体中文), GoDoc, and VitePress describe Limits, the encode-option matrix, Data URI rules, GIF/EXIF failure modes, and the known limitations above.
+
+---
+
 # v0.1.8 - Remove Manager driver abstraction
 
 `Manager` and `Driver()` are gone. Package defaults live in `DefaultConfig()`. Reuse a setup with `WithConfig` on `Open`, `Decode`, `New`, and `Animate`.

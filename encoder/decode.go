@@ -9,6 +9,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
+	"net/url"
 	"os"
 	"strings"
 
@@ -73,27 +74,103 @@ func ReadAllLimited(r io.Reader, maxBytes int64) ([]byte, error) {
 }
 
 // DecodeDataURIPayload extracts the payload of a data:image/... URI.
+//
+// The media type must be image/*. `;base64` is recognized as a flag parameter
+// (case-insensitive) after splitting on `;`, not by substring search. The
+// payload is percent-decoded. Unknown parameters, non-image types, empty
+// payloads, illegal percent-encoding, and illegal Base64 return ErrDecoder.
 func DecodeDataURIPayload(s string) ([]byte, error) {
-	comma := strings.Index(s, ",")
+	if len(s) < 5 || !strings.EqualFold(s[:5], "data:") {
+		return nil, errs.Wrap(errs.ErrDecoder, "invalid data URI")
+	}
+	rest := s[5:]
+	comma := strings.IndexByte(rest, ',')
 	if comma < 0 {
 		return nil, errs.Wrap(errs.ErrDecoder, "invalid data URI")
 	}
-	meta := s[:comma]
-	payload := s[comma+1:]
-	if strings.Contains(meta, ";base64") {
-		data, err := decodeBase64Flexible(payload)
+	mediaType, isBase64, err := parseDataURIMeta(rest[:comma])
+	if err != nil {
+		return nil, err
+	}
+	if !isImageMediaType(mediaType) {
+		return nil, errs.Wrap(errs.ErrDecoder, "data URI media type %q is not image/*", mediaType)
+	}
+	payload, err := url.PathUnescape(rest[comma+1:])
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrDecoder, "invalid data URI percent-encoding")
+	}
+	var data []byte
+	if isBase64 {
+		data, err = decodeBase64Flexible(payload)
 		if err != nil {
 			return nil, errs.Wrap(errs.ErrDecoder, "invalid data URI base64")
 		}
-		return data, nil
+	} else {
+		data = []byte(payload)
 	}
-	return []byte(payload), nil
+	if len(data) == 0 {
+		return nil, errs.Wrap(errs.ErrDecoder, "empty data URI payload")
+	}
+	return data, nil
+}
+
+func parseDataURIMeta(meta string) (mediaType string, isBase64 bool, err error) {
+	if strings.TrimSpace(meta) == "" {
+		return "text/plain", false, nil
+	}
+	parts := strings.Split(meta, ";")
+	mediaType = strings.TrimSpace(parts[0])
+	if mediaType == "" {
+		mediaType = "text/plain"
+	}
+	for _, p := range parts[1:] {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		eq := strings.IndexByte(p, '=')
+		if eq < 0 {
+			if strings.EqualFold(p, "base64") {
+				isBase64 = true
+				continue
+			}
+			return "", false, errs.Wrap(errs.ErrDecoder, "unknown data URI parameter %q", p)
+		}
+		name := strings.TrimSpace(p[:eq])
+		if strings.EqualFold(name, "charset") {
+			continue
+		}
+		return "", false, errs.Wrap(errs.ErrDecoder, "unknown data URI parameter %q", name)
+	}
+	return mediaType, isBase64, nil
+}
+
+func isImageMediaType(mt string) bool {
+	mt = strings.TrimSpace(mt)
+	slash := strings.IndexByte(mt, '/')
+	if slash <= 0 || slash == len(mt)-1 {
+		return false
+	}
+	typ := mt[:slash]
+	sub := mt[slash+1:]
+	if strings.ContainsAny(sub, " \t") {
+		return false
+	}
+	return strings.EqualFold(typ, "image")
 }
 
 func decodeBase64Flexible(s string) ([]byte, error) {
-	s = strings.TrimSpace(s)
-	s = strings.ReplaceAll(s, "\n", "")
-	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.Map(func(r rune) rune {
+		switch r {
+		case ' ', '\t', '\n', '\r':
+			return -1
+		default:
+			return r
+		}
+	}, s)
+	if s == "" {
+		return nil, errs.Wrap(errs.ErrDecoder, "empty data URI payload")
+	}
 	if decoded, err := base64.StdEncoding.DecodeString(s); err == nil {
 		return decoded, nil
 	}
@@ -220,38 +297,47 @@ func DecodeStill(data []byte) (image.Image, string, error) {
 // ParseJPEGExif reads Orientation from a JPEG APP1 Exif segment.
 // The returned map is nil when no valid Exif orientation is present.
 // The integer is always in 1..8 (1 when missing or invalid).
+// Corrupt, truncated, or random input never panics.
 func ParseJPEGExif(data []byte) (map[string]any, int) {
 	if len(data) < 4 || data[0] != 0xff || data[1] != 0xd8 {
 		return nil, 1
 	}
 	i := 2
-	for i+4 < len(data) {
+	for i < len(data) {
 		if data[i] != 0xff {
 			break
 		}
-		marker := data[i+1]
-		if marker == 0xda {
+		for i < len(data) && data[i] == 0xff {
+			i++
+		}
+		if i >= len(data) {
 			break
 		}
-		if i+4 > len(data) {
+		marker := data[i]
+		i++
+		if marker == 0xda || marker == 0xd9 {
 			break
 		}
-		size := int(data[i+2])<<8 | int(data[i+3])
-		if size < 2 || i+2+size > len(data) {
+		if marker >= 0xd0 && marker <= 0xd7 {
+			continue
+		}
+		if i+1 >= len(data) {
 			break
 		}
-		if marker == 0xe1 {
-			seg := data[i+4 : i+2+size]
-			if bytes.HasPrefix(seg, []byte("Exif\x00\x00")) {
-				orient := readExifOrientation(seg[6:])
-				if orient < 1 || orient > 8 {
-					orient = 1
-				}
-				m := map[string]any{"Orientation": orient, "IFD0.Orientation": orient}
-				return m, orient
+		size := int(data[i])<<8 | int(data[i+1])
+		if size < 2 || i+size > len(data) {
+			break
+		}
+		seg := data[i+2 : i+size]
+		if marker == 0xe1 && bytes.HasPrefix(seg, []byte("Exif\x00\x00")) {
+			orient := readExifOrientation(seg[6:])
+			if orient < 1 || orient > 8 {
+				orient = 1
 			}
+			m := map[string]any{"Orientation": orient, "IFD0.Orientation": orient}
+			return m, orient
 		}
-		i += 2 + size
+		i += size
 	}
 	return nil, 1
 }

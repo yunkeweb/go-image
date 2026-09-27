@@ -8,6 +8,9 @@ import (
 	"image"
 	"image/color"
 	"image/gif"
+	"math"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -108,5 +111,61 @@ func TestNewRespectsLimits(t *testing.T) {
 	img := New(100, 20, WithLimits(Limits{MaxWidth: 50}))
 	if img.Err() == nil || !errors.Is(img.Err(), ErrLimit) {
 		t.Fatalf("new: %v", img.Err())
+	}
+}
+
+func TestFromImageRespectsLimits(t *testing.T) {
+	src := image.NewNRGBA(image.Rect(0, 0, 40, 10))
+	img := FromImage(src, WithLimits(Limits{MaxWidth: 20}))
+	if img.Err() == nil || !errors.Is(img.Err(), ErrLimit) {
+		t.Fatalf("from: %v", img.Err())
+	}
+	ok := FromImage(src, WithLimits(Limits{MaxWidth: 80}))
+	if ok.Err() != nil {
+		t.Fatal(ok.Err())
+	}
+}
+
+func TestOpenRespectsLimits(t *testing.T) {
+	data, err := New(8, 8).Fill("#112233").ToPNG().Result()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tiny.png")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	img := Open(path, WithLimits(Limits{MaxInputBytes: 4}))
+	if img.Err() == nil || !errors.Is(img.Err(), ErrLimit) {
+		t.Fatalf("open: %v", img.Err())
+	}
+	ok := Open(path, WithLimits(Limits{MaxWidth: 64}))
+	if ok.Err() != nil {
+		t.Fatal(ok.Err())
+	}
+}
+
+func TestLimitsIntegerOverflowAndGIFPixels(t *testing.T) {
+	if _, ok := totalPixels(math.MaxInt, math.MaxInt, 2); ok {
+		t.Fatal("expected overflow")
+	}
+	if err := checkImageLimits(Config{Limits: Limits{MaxPixels: 1}}, math.MaxInt, math.MaxInt, 2); err == nil || !errors.Is(err, ErrLimit) {
+		t.Fatalf("overflow limits: %v", err)
+	}
+	pal := color.Palette{color.Black, color.White}
+	g := &gif.GIF{LoopCount: 0}
+	for i := 0; i < 3; i++ {
+		p := image.NewPaletted(image.Rect(0, 0, 4, 4), pal)
+		g.Image = append(g.Image, p)
+		g.Delay = append(g.Delay, 10)
+	}
+	var buf bytes.Buffer
+	if err := gif.EncodeAll(&buf, g); err != nil {
+		t.Fatal(err)
+	}
+	img := DecodeBytes(buf.Bytes(), WithLimits(Limits{MaxPixels: 4 * 4 * 2}))
+	if img.Err() == nil || !errors.Is(img.Err(), ErrLimit) {
+		t.Fatalf("gif pixels: %v", img.Err())
 	}
 }

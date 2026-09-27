@@ -76,6 +76,20 @@ img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true))
 Functional Options（`WithAutoOrientation`、`WithDecodeAnimation`、`WithBlendingColor`、`WithStrip`、`WithLimits`）作用于单次调用。多图共享配置用 `Config` / `DefaultConfig()`，再通过 `WithConfig` 传入。`Limits` 字段为 0 表示不限制。
 
 ```go
+img := goimage.Decode(r, goimage.WithLimits(goimage.Limits{
+    MaxInputBytes: 12 << 20,
+    MaxWidth:      4096,
+    MaxHeight:     4096,
+    MaxPixels:     4096 * 4096,
+    MaxFrames:     64,
+}))
+```
+
+`DecodeDataURI` 只接受 `data:image/...`。`;base64` 是大小写不敏感的标志参数，payload 会做 URL percent-decoding。非图片类型、未知参数、空 payload 和非法编码返回 `ErrDecoder`。
+
+`EncodeOptions` 目前只实现 JPEG `Quality`（默认 80）。`Progressive`、`Indexed`、`Interlaced`、非 0 `Bitdepth`，以及非 JPEG 上的 `Quality` 返回 `ErrNotSupported`。WebP 编码为无损 VP8L。
+
+```go
 cfg := goimage.DefaultConfig()
 cfg.DecodeAnimation = false
 photo := goimage.Open("input.png", goimage.WithConfig(cfg))
@@ -128,9 +142,13 @@ _, _ = enc.WriteTo(w) // http.ResponseWriter、Gin 或任意 io.Writer
 ## 测试
 
 ```bash
-go test -v -race ./...
+gofmt -l .
 go vet ./...
+go test -shuffle=on ./...
+go test -race ./...
 ```
+
+v0.3.0 变更、兼容性与已知限制见 [RELEASE_NOTES.md](RELEASE_NOTES.md)。
 
 ## 许可证
 

@@ -258,10 +258,10 @@ func TestGIFDisposalStateMachine(t *testing.T) {
 	prev := palettedRect(image.Rect(0, 0, 2, 2), pal, 3)
 
 	noneGIF := &gif.GIF{
-		Image:    []*image.Paletted{full, palettedRect(image.Rect(0, 0, 8, 8), pal, 2)},
-		Delay:    []int{5, 7},
-		Disposal: []byte{gif.DisposalNone, gif.DisposalNone},
-		Config:   image.Config{Width: 8, Height: 8, ColorModel: pal},
+		Image:     []*image.Paletted{full, palettedRect(image.Rect(0, 0, 8, 8), pal, 2)},
+		Delay:     []int{5, 7},
+		Disposal:  []byte{gif.DisposalNone, gif.DisposalNone},
+		Config:    image.Config{Width: 8, Height: 8, ColorModel: pal},
 		LoopCount: 2,
 	}
 	img := DecodeBytes(encodeGIFBytes(t, noneGIF))

@@ -83,3 +83,4 @@ func main() {
 - 链结束后检查一次 `Err()` 即可。中间检查可选。
 - `EncodedImage.WriteTo` 在已有编码错误时直接返回该错误，不写字节。
 - `errors.Is` 有效，因为根包哨兵与 `internal/errs` 是同一组值。
+- 默认 `Limits` 不限制。处理不可信输入时应显式设上限。截断 GIF 和非 `image/*` Data URI 返回 `ErrDecoder`，不会按静图回退。

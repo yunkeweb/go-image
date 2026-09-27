@@ -19,7 +19,7 @@ go get github.com/yunkeweb/go-image
 生产环境建议钉死版本：
 
 ```bash
-go get github.com/yunkeweb/go-image@v0.1.7
+go get github.com/yunkeweb/go-image@v0.3.0
 ```
 
 ## 导入

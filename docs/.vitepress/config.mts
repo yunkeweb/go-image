@@ -179,6 +179,7 @@ export default defineConfig({
   description: 'Fluent image processing library for Go',
   base: '/go-image/',
   lastUpdated: true,
+  srcExclude: ['reports/**'],
   ignoreDeadLinks: false,
   locales: {
     root: {

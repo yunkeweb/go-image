@@ -11,15 +11,15 @@ import (
 type Anchor string
 
 const (
-	AnchorTopLeft      Anchor = "top-left"
-	AnchorTop          Anchor = "top"
-	AnchorTopRight     Anchor = "top-right"
-	AnchorLeft         Anchor = "left"
-	AnchorCenter       Anchor = "center"
-	AnchorRight        Anchor = "right"
-	AnchorBottomLeft   Anchor = "bottom-left"
-	AnchorBottom       Anchor = "bottom"
-	AnchorBottomRight  Anchor = "bottom-right"
+	AnchorTopLeft     Anchor = "top-left"
+	AnchorTop         Anchor = "top"
+	AnchorTopRight    Anchor = "top-right"
+	AnchorLeft        Anchor = "left"
+	AnchorCenter      Anchor = "center"
+	AnchorRight       Anchor = "right"
+	AnchorBottomLeft  Anchor = "bottom-left"
+	AnchorBottom      Anchor = "bottom"
+	AnchorBottomRight Anchor = "bottom-right"
 )
 
 // String returns the canonical hyphenated name.

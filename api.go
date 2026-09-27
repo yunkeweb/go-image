@@ -78,7 +78,10 @@ func DecodeBytes(data []byte, opts ...Option) *Image {
 	return result(decodeBytes(data, "", cfg))
 }
 
-// DecodeDataURI decodes a `data:image/...;base64,...` URI.
+// DecodeDataURI decodes a `data:image/...` URI.
+// The media type must be image/*. `;base64` is a case-insensitive flag
+// parameter. The payload is percent-decoded. Non-image types, unknown
+// parameters, empty payloads, and illegal encoding set ErrDecoder.
 // Error handling: Check img.Err() after call chain.
 func DecodeDataURI(uri string, opts ...Option) *Image {
 	cfg, fail := configOrFailed(opts)
@@ -163,6 +166,9 @@ func fromStdImage(src image.Image, cfg Config) (*Image, error) {
 }
 
 func decodeDataURI(s string, cfg Config) (*Image, error) {
+	if err := checkInputBytes(cfg, int64(len(s))); err != nil {
+		return nil, err
+	}
 	data, err := encoder.DecodeDataURIPayload(s)
 	if err != nil {
 		return nil, err
@@ -185,9 +191,14 @@ func decodeBytes(data []byte, path string, cfg Config) (*Image, error) {
 	}
 	frames := 1
 	if encoder.IsGIF(data) {
-		if n, cerr := encoder.CountGIFFrames(data); cerr == nil && n > 0 {
-			frames = n
+		n, cerr := encoder.CountGIFFrames(data)
+		if cerr != nil {
+			return nil, cerr
 		}
+		if n < 1 {
+			return nil, wrap(ErrDecoder, "unable to decode gif: no frames")
+		}
+		frames = n
 	}
 	if err := checkImageLimits(cfg, conf.Width, conf.Height, frames); err != nil {
 		return nil, err

@@ -14,7 +14,9 @@ Encode helpers return `EncodedImage`: bytes, media type, `WriteTo`, `Save`, and 
 func Open(path string, opts ...Option) *Image
 func Decode(r io.Reader, opts ...Option) *Image
 func DecodeBytes(data []byte, opts ...Option) *Image
+func DecodeDataURI(uri string, opts ...Option) *Image
 func FromImage(src image.Image, opts ...Option) *Image
+func New(width, height int, opts ...Option) *Image
 ```
 
 | Option | Type | Default | Meaning |
@@ -25,7 +27,22 @@ func FromImage(src image.Image, opts ...Option) *Image
 | `WithStrip` | `bool` | `false` | Drop ICC profile bytes on encode |
 | `WithLimits` | `Limits` | all zeros | Decode resource caps; zero fields are unlimited |
 
-`Limits` is checked in `Open`, `Decode`, `DecodeBytes`, and `DecodeDataURI` before pixel buffers are allocated. `MaxPixels` is `width × height` for still images and `width × height × frames` for GIF. Over-limit input returns `ErrLimit`.
+`Limits` is checked in `Open`, `Decode`, `DecodeBytes`, `DecodeDataURI`, `New`, and `FromImage` before pixel buffers are allocated. `MaxPixels` is `width × height` for still images and `width × height × frames` for GIF. Reader input is capped with `io.LimitReader`. Integer overflow in the pixel product is over-limit. Over-limit input returns `ErrLimit`.
+
+If GIF frame counting fails (truncated or corrupt GIF), decode returns `ErrDecoder`. The input is not treated as a still image.
+
+## Data URI
+
+`DecodeDataURI` accepts `data:[mediatype][;base64],data`.
+
+| Rule | Behavior |
+|------|----------|
+| Media type | Must be `image/*` (case-insensitive type). Other types return `ErrDecoder` |
+| `;base64` | Flag parameter, case-insensitive. Detected by splitting parameters, not substring search |
+| Payload | URL percent-decoded. Illegal `%` sequences return `ErrDecoder` |
+| Base64 | Standard, no-padding, and newline-wrapped forms |
+| Empty payload | `ErrDecoder` |
+| Unknown parameters | `ErrDecoder` (`charset` is allowed) |
 
 ## Encode API
 

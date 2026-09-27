@@ -72,7 +72,8 @@ func WithConfig(c Config) Option {
 	return func(dst *Config) { *dst = c }
 }
 
-// WithLimits sets decode resource caps for Open, Decode, DecodeBytes, and related entry points.
+// WithLimits sets decode resource caps for Open, Decode, DecodeBytes,
+// DecodeDataURI, New, and FromImage. Zero fields are unlimited.
 func WithLimits(l Limits) Option {
 	return func(c *Config) { c.Limits = l }
 }

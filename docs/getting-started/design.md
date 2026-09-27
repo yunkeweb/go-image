@@ -37,6 +37,7 @@ Go has no function overloading. Entry points are named by the source type:
 | `Open` | `string` path |
 | `Decode` | `io.Reader` |
 | `DecodeBytes` | `[]byte` |
+| `DecodeDataURI` | `data:image/...` URI |
 | `FromImage` | `image.Image` |
 | `New` | `int, int` canvas |
 

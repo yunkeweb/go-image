@@ -76,6 +76,20 @@ img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true))
 Functional options (`WithAutoOrientation`, `WithDecodeAnimation`, `WithBlendingColor`, `WithStrip`, `WithLimits`) apply to a single call. Shared settings live in `Config` / `DefaultConfig()` and attach with `WithConfig`. Zero `Limits` fields are unlimited.
 
 ```go
+img := goimage.Decode(r, goimage.WithLimits(goimage.Limits{
+    MaxInputBytes: 12 << 20,
+    MaxWidth:      4096,
+    MaxHeight:     4096,
+    MaxPixels:     4096 * 4096,
+    MaxFrames:     64,
+}))
+```
+
+`DecodeDataURI` accepts `data:image/...` URIs only. `;base64` is a case-insensitive flag; the payload is percent-decoded. Non-image types, unknown parameters, empty payloads, and illegal encoding set `ErrDecoder`.
+
+`EncodeOptions` only implements JPEG `Quality` (default 80). `Progressive`, `Indexed`, `Interlaced`, non-zero `Bitdepth`, and `Quality` on non-JPEG formats return `ErrNotSupported`. WebP encode is lossless VP8L.
+
+```go
 cfg := goimage.DefaultConfig()
 cfg.DecodeAnimation = false
 photo := goimage.Open("input.png", goimage.WithConfig(cfg))
@@ -128,9 +142,13 @@ _, _ = enc.WriteTo(w) // http.ResponseWriter, Gin, or any io.Writer
 ## Tests
 
 ```bash
-go test -v -race ./...
+gofmt -l .
 go vet ./...
+go test -shuffle=on ./...
+go test -race ./...
 ```
+
+See [RELEASE_NOTES.md](RELEASE_NOTES.md) for the v0.3.0 changelog, compatibility notes, and known limitations.
 
 ## License
 

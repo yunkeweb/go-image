@@ -83,3 +83,4 @@ func main() {
 - Check `Err()` once after the chain. Intermediate checks are optional.
 - `EncodedImage.WriteTo` returns the sticky encode error without writing bytes.
 - `errors.Is` works because root sentinels are the same values as `internal/errs`.
+- Default `Limits` are unlimited. Set caps on untrusted input. Truncated GIF and non-`image/*` Data URIs return `ErrDecoder`, not a still-image fallback.

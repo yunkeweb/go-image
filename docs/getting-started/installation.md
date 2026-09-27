@@ -19,7 +19,7 @@ go get github.com/yunkeweb/go-image
 Pin a release when you vendor production code:
 
 ```bash
-go get github.com/yunkeweb/go-image@v0.1.7
+go get github.com/yunkeweb/go-image@v0.3.0
 ```
 
 ## Import

@@ -35,6 +35,7 @@ Go 没有函数重载。入口按源类型命名：
 | `Open` | `string` 路径 |
 | `Decode` | `io.Reader` |
 | `DecodeBytes` | `[]byte` |
+| `DecodeDataURI` | `data:image/...` URI |
 | `FromImage` | `image.Image` |
 | `New` | `int, int` 画布 |
 

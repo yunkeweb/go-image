@@ -14,7 +14,9 @@ go-image 用 Go 标准库与 `golang.org/x/image` 解码 JPEG、PNG、GIF、无�
 func Open(path string, opts ...Option) *Image
 func Decode(r io.Reader, opts ...Option) *Image
 func DecodeBytes(data []byte, opts ...Option) *Image
+func DecodeDataURI(uri string, opts ...Option) *Image
 func FromImage(src image.Image, opts ...Option) *Image
+func New(width, height int, opts ...Option) *Image
 ```
 
 | 选项 | 类型 | 默认值 | 含义 |
@@ -25,7 +27,22 @@ func FromImage(src image.Image, opts ...Option) *Image
 | `WithStrip` | `bool` | `false` | 编码时丢弃 ICC 配置 |
 | `WithLimits` | `Limits` | 全 0 | 解码资源上限；零字段表示不限制 |
 
-`Limits` 在 `Open`、`Decode`、`DecodeBytes`、`DecodeDataURI` 分配像素缓冲之前检查。`MaxPixels` 对静图是 `宽 × 高`，对 GIF 是 `宽 × 高 × 帧数`。超限返回 `ErrLimit`。
+`Limits` 在 `Open`、`Decode`、`DecodeBytes`、`DecodeDataURI`、`New`、`FromImage` 分配像素缓冲之前检查。`MaxPixels` 对静图是 `宽 × 高`，对 GIF 是 `宽 × 高 × 帧数`。`io.Reader` 用 `io.LimitReader` 截断。像素乘积整数溢出视为超限。超限返回 `ErrLimit`。
+
+GIF 帧计数失败（截断或损坏）时解码返回 `ErrDecoder`，不会按单帧静图继续处理。
+
+## Data URI
+
+`DecodeDataURI` 接受 `data:[mediatype][;base64],data`。
+
+| 规则 | 行为 |
+|------|------|
+| 媒体类型 | 必须是 `image/*`（类型大小写不敏感）。其他类型返回 `ErrDecoder` |
+| `;base64` | 标志参数，大小写不敏感。按参数拆分识别，不用子串匹配 |
+| Payload | URL percent-decoding。非法 `%` 序列返回 `ErrDecoder` |
+| Base64 | 标准、无 padding、带换行 |
+| 空 payload | `ErrDecoder` |
+| 未知参数 | `ErrDecoder`（允许 `charset`） |
 
 ## 编码 API
 

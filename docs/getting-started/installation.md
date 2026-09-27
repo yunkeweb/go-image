@@ -8,7 +8,7 @@ go-image is a pure Go module. It compiles with the standard toolchain, needs no 
 |------|--------|
 | Go | 1.22 or newer |
 | CGO | Off. The library never calls into libvips, ImageMagick, or libwebp C bindings |
-| Extra modules | `golang.org/x/image` (JPEG extras, WebP VP8L, BMP, TIFF, fonts, `draw` resampling) |
+| Extra modules | `golang.org/x/image` (JPEG extras, WebP VP8L, BMP, TIFF, fonts, `draw` resampling). Kept at `v0.24.0` or older so Go 1.22 still builds; `v0.25.0+` need Go 1.23, `v0.46.0` needs Go 1.26 |
 
 ## Install
 

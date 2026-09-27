@@ -8,7 +8,7 @@ go-image 是纯 Go 模块。使用标准工具链即可编译，不需要 C 编�
 |------|------|
 | Go | 1.22 及以上 |
 | CGO | 关闭即可。库不会调用 libvips、ImageMagick 或 libwebp 的 C 绑定 |
-| 额外模块 | `golang.org/x/image`（JPEG 扩展、WebP VP8L、BMP、TIFF、字体、`draw` 重采样） |
+| 额外模块 | `golang.org/x/image`（JPEG 扩展、WebP VP8L、BMP、TIFF、字体、`draw` 重采样）。保持 `v0.24.0` 及更早以兼容 Go 1.22；`v0.25.0+` 需要 Go 1.23，`v0.46.0` 需要 Go 1.26 |
 
 ## 安装命令
 

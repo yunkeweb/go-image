@@ -35,7 +35,7 @@ func main() {
 go get github.com/yunkeweb/go-image
 ```
 
-Requires Go 1.22+.
+Requires Go 1.22+. `golang.org/x/image` is kept at versions that still compile with Go 1.22 (`v0.24.0` and earlier). `v0.25.0` needs Go 1.23; `v0.46.0` needs Go 1.26.
 
 ## Features
 

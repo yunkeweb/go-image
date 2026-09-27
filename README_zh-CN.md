@@ -35,7 +35,7 @@ func main() {
 go get github.com/yunkeweb/go-image
 ```
 
-需要 Go 1.22+。
+需要 Go 1.22+。`golang.org/x/image` 保持在仍能用 Go 1.22 编译的版本（`v0.24.0` 及更早）。`v0.25.0` 需要 Go 1.23；`v0.46.0` 需要 Go 1.26。
 
 ## 功能
 

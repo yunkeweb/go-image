@@ -4,6 +4,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # v0.25.0+ require Go 1.23+; v0.46.0 requires Go 1.26. CI still tests Go 1.22.
+      - dependency-name: golang.org/x/image
+        versions: [">= 0.25.0"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

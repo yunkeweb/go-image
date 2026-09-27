@@ -2,6 +2,7 @@ package goimage
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -119,8 +120,14 @@ func (s Size) IsLandscape() bool { return s.Width > s.Height }
 func (s Size) IsPortrait() bool { return s.Width < s.Height }
 
 // MovePivot sets the 9-point pivot named by position, plus an extra offset.
-func (s Size) MovePivot(position string, offsetX, offsetY int) Size {
-	return sizeFromMod(s.toMod().MovePivot(position, offsetX, offsetY))
+// Untyped string literals such as "center" still compile. Unknown names
+// fall through to the modifier helper; Image methods report them via Err().
+func (s Size) MovePivot(position Anchor, offsetX, offsetY int) Size {
+	a, err := ParseAnchor(string(position))
+	if err != nil {
+		a = position
+	}
+	return sizeFromMod(s.toMod().MovePivot(string(a), offsetX, offsetY))
 }
 
 // RelativePositionTo returns the vector from other.Pivot to s.Pivot.
@@ -130,8 +137,12 @@ func (s Size) RelativePositionTo(other Size) Point {
 }
 
 // AlignPivotTo moves s so its named pivot matches ref's named pivot.
-func (s Size) AlignPivotTo(ref Size, position string) Size {
-	return sizeFromMod(s.toMod().AlignPivotTo(ref.toMod(), position))
+func (s Size) AlignPivotTo(ref Size, position Anchor) Size {
+	a, err := ParseAnchor(string(position))
+	if err != nil {
+		a = position
+	}
+	return sizeFromMod(s.toMod().AlignPivotTo(ref.toMod(), string(a)))
 }
 
 // Color is an 8-bit-per-channel sRGB color with alpha (255 = opaque).
@@ -174,12 +185,11 @@ func ParseColor(v any) (Color, error) {
 	}
 }
 
-func mustColor(v any) Color {
-	c, err := ParseColor(v)
-	if err != nil {
-		return ColorWhite
+func parseBackground(v any) (Color, error) {
+	if v == nil {
+		return ColorWhite, nil
 	}
-	return c
+	return ParseColor(v)
 }
 
 func parseColorString(s string) (Color, error) {
@@ -586,6 +596,7 @@ func frameFromAnim(f modifier.AnimFrame) Frame {
 // is not safe for concurrent mutation; clone first when sharing work.
 //
 // Image implements image.Image using the first frame as the static view.
+// Error handling: Check img.Err() after call chain.
 type Image struct {
 	frames     []Frame
 	loops      int
@@ -1047,8 +1058,28 @@ func (img *Image) releaseFrames(except int) {
 	}
 }
 
+func applyGeometry(base geometrySettings, opts []GeometryOption) (geometrySettings, Anchor, Color, error) {
+	cfg := applyGeometryOptions(base, opts)
+	fallback := AnchorCenter
+	if strings.TrimSpace(base.anchor) != "" {
+		if a, err := ParseAnchor(base.anchor); err == nil {
+			fallback = a
+		}
+	}
+	a, err := resolveAnchor(cfg.anchor, fallback)
+	if err != nil {
+		return cfg, "", Color{}, err
+	}
+	bg, err := parseBackground(cfg.background)
+	if err != nil {
+		return cfg, a, Color{}, err
+	}
+	return cfg, a, bg, nil
+}
+
 // Resize scales every frame. Omitting height keeps the original aspect ratio.
 // Zero and negative sizes set ErrInvalidDimensions.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Resize(width int, height ...int) *Image {
 	if img.fail() {
 		return img
@@ -1109,12 +1140,16 @@ func (img *Image) ScaleDown(width int, height ...int) *Image {
 }
 
 // Cover fills width×height and crops overflow around the anchor (default center).
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Cover(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	cfg := applyGeometryOptions(geometrySettings{anchor: "center"}, opts)
-	crop, resizeTo, err := modifier.CoverSizes(img.Size().toMod(), width, height, cfg.anchor, false)
+	_, anchor, _, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter)}, opts)
+	if err != nil {
+		return img.setErr(err)
+	}
+	crop, resizeTo, err := modifier.CoverSizes(img.Size().toMod(), width, height, string(anchor), false)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -1128,8 +1163,11 @@ func (img *Image) CoverDown(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	cfg := applyGeometryOptions(geometrySettings{anchor: "center"}, opts)
-	crop, _, err := modifier.CoverSizes(img.Size().toMod(), width, height, cfg.anchor, true)
+	_, anchor, _, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter)}, opts)
+	if err != nil {
+		return img.setErr(err)
+	}
+	crop, _, err := modifier.CoverSizes(img.Size().toMod(), width, height, string(anchor), true)
 	if err != nil {
 		return img.setErr(err)
 	}
@@ -1144,6 +1182,8 @@ func (img *Image) CoverDown(width, height int, opts ...GeometryOption) *Image {
 }
 
 // Fit is an alias of Cover.
+//
+// Deprecated: use Cover.
 func (img *Image) Fit(width, height int, opts ...GeometryOption) *Image {
 	return img.Cover(width, height, opts...)
 }
@@ -1153,8 +1193,10 @@ func (img *Image) Contain(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	cfg := applyGeometryOptions(geometrySettings{anchor: "center", background: "ffffff"}, opts)
-	bg := mustColor(cfg.background)
+	_, anchor, bg, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter), background: "ffffff"}, opts)
+	if err != nil {
+		return img.setErr(err)
+	}
 	r, err := modifier.NewResizer(width, height)
 	if err != nil {
 		return img.setErr(err)
@@ -1164,7 +1206,7 @@ func (img *Image) Contain(width, height int, opts ...GeometryOption) *Image {
 		return img.setErr(err)
 	}
 	canvas := modifier.Size{Width: width, Height: height}
-	crop = crop.AlignPivotTo(canvas, cfg.anchor)
+	crop = crop.AlignPivotTo(canvas, string(anchor))
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.PlaceOnCanvas(n, width, height, crop, bg.NRGBA()), nil
 	})
@@ -1175,8 +1217,10 @@ func (img *Image) Pad(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	cfg := applyGeometryOptions(geometrySettings{anchor: "center", background: "ffffff"}, opts)
-	bg := mustColor(cfg.background)
+	_, anchor, bg, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter), background: "ffffff"}, opts)
+	if err != nil {
+		return img.setErr(err)
+	}
 	r, err := modifier.NewResizer(width, height)
 	if err != nil {
 		return img.setErr(err)
@@ -1186,7 +1230,7 @@ func (img *Image) Pad(width, height int, opts ...GeometryOption) *Image {
 		return img.setErr(err)
 	}
 	canvas := modifier.Size{Width: width, Height: height}
-	crop = crop.AlignPivotTo(canvas, cfg.anchor)
+	crop = crop.AlignPivotTo(canvas, string(anchor))
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
 		return modifier.PlaceOnCanvas(n, width, height, crop, bg.NRGBA()), nil
 	})
@@ -1197,10 +1241,12 @@ func (img *Image) Crop(width, height int, opts ...GeometryOption) *Image {
 	if img.fail() {
 		return img
 	}
-	cfg := applyGeometryOptions(geometrySettings{anchor: "top-left", background: "ffffff"}, opts)
-	bg := mustColor(cfg.background)
+	cfg, anchor, bg, err := applyGeometry(geometrySettings{anchor: string(AnchorTopLeft), background: "ffffff"}, opts)
+	if err != nil {
+		return img.setErr(err)
+	}
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.Crop(n, width, height, cfg.anchor, bg.NRGBA(), cfg.offsetX, cfg.offsetY)
+		return modifier.Crop(n, width, height, string(anchor), bg.NRGBA(), cfg.offsetX, cfg.offsetY)
 	})
 }
 
@@ -1209,10 +1255,12 @@ func (img *Image) ResizeCanvas(width, height int, opts ...GeometryOption) *Image
 	if img.fail() {
 		return img
 	}
-	cfg := applyGeometryOptions(geometrySettings{anchor: "center", background: "ffffff"}, opts)
-	bg := mustColor(cfg.background)
+	_, anchor, bg, err := applyGeometry(geometrySettings{anchor: string(AnchorCenter), background: "ffffff"}, opts)
+	if err != nil {
+		return img.setErr(err)
+	}
 	return img.replaceAllGeometry(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.ResizeCanvas(n, width, height, cfg.anchor, bg.NRGBA())
+		return modifier.ResizeCanvas(n, width, height, string(anchor), bg.NRGBA())
 	})
 }
 
@@ -1330,6 +1378,11 @@ func (img *Image) ReduceColors(limit int, background any) *Image {
 	if img.fail() {
 		return img
 	}
+	if background != nil {
+		if _, err := ParseColor(background); err != nil {
+			return img.setErr(err)
+		}
+	}
 	if limit < 1 {
 		limit = 1
 	}
@@ -1398,13 +1451,14 @@ func (img *Image) Flop() *Image {
 }
 
 // Rotate turns every frame by angle degrees around its center.
+// Invalid background colors set Err() even when angle normalizes to 0.
 func (img *Image) Rotate(angle float64, background any) *Image {
 	if img.fail() {
 		return img
 	}
 	bg, err := ParseColor(background)
 	if err != nil {
-		bg = ColorWhite
+		return img.setErr(err)
 	}
 	angle = math.Mod(angle, 360)
 	if angle < 0 {
@@ -1432,6 +1486,8 @@ func (img *Image) Orient() *Image {
 }
 
 // Orientate is an alias of Orient.
+//
+// Deprecated: use Orient.
 func (img *Image) Orientate() *Image { return img.Orient() }
 
 func (img *Image) clearOrientation() {
@@ -1489,21 +1545,56 @@ func applyOrientation(img *Image, orient int) {
 	})
 }
 
-// Place overlays src onto every frame at position with 0–100 opacity.
-func (img *Image) Place(src *Image, position string, offsetX, offsetY, opacity int) *Image {
+// Place overlays src onto every frame at position.
+// Offset and opacity default to (0, 0) and 100; pass WithOffset and WithOpacity
+// to change them. Unknown anchors and opacity outside 0–100 set Err().
+// Error handling: Check img.Err() after call chain.
+func (img *Image) Place(src image.Image, position Anchor, options ...PlaceOption) *Image {
 	if img.fail() {
 		return img
 	}
 	if src == nil {
 		return img.setErr(wrap(ErrInput, "nil watermark"))
 	}
-	if src.Err() != nil {
-		return img.setErr(src.Err())
+	anchor, err := ParseAnchor(string(position))
+	if err != nil {
+		return img.setErr(err)
 	}
-	overlay := src.primary()
+	cfg := applyGeometryOptions(geometrySettings{opacity: 100}, options)
+	if cfg.opacity < 0 || cfg.opacity > 100 {
+		return img.setErr(wrap(ErrInput, "opacity must be 0–100, got %d", cfg.opacity))
+	}
+	overlay, owned, err := overlayNRGBA(src)
+	if err != nil {
+		return img.setErr(err)
+	}
+	if owned {
+		defer pool.Release(overlay)
+	}
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.Place(n, overlay, position, offsetX, offsetY, opacity), nil
+		return modifier.Place(n, overlay, string(anchor), cfg.offsetX, cfg.offsetY, cfg.opacity), nil
 	})
+}
+
+func overlayNRGBA(src image.Image) (n *image.NRGBA, owned bool, err error) {
+	if src == nil {
+		return nil, false, wrap(ErrInput, "nil watermark")
+	}
+	if img, ok := src.(*Image); ok {
+		if img.fail() {
+			return nil, false, img.Err()
+		}
+		out := img.primary()
+		if out == nil {
+			return nil, false, wrap(ErrInput, "nil watermark")
+		}
+		return out, false, nil
+	}
+	out := pool.AsNRGBA(src)
+	if out == nil {
+		return nil, false, wrap(ErrInvalidDimensions, "invalid dimensions")
+	}
+	return out, true, nil
 }
 
 // Drawable holds style for DrawRectangle, DrawEllipse, DrawCircle, DrawPolygon,
@@ -1554,16 +1645,16 @@ func (d *Drawable) AddPoint(x, y int) *Drawable {
 	return d
 }
 
-func nrgbaPtr(v any) *color.NRGBA {
+func nrgbaPtr(v any) (*color.NRGBA, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	c, err := ParseColor(v)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	n := c.NRGBA()
-	return &n
+	return &n, nil
 }
 
 // DrawPixel sets the pixel at (x, y) on every frame.
@@ -1581,6 +1672,8 @@ func (img *Image) DrawPixel(x, y int, col any) *Image {
 }
 
 // Fill paints every pixel of every frame with col.
+// Invalid color values set Err(); they are never replaced with white.
+// Error handling: Check img.Err() after call chain.
 func (img *Image) Fill(col any) *Image {
 	if img.fail() {
 		return img
@@ -1611,17 +1704,31 @@ func (img *Image) FloodFill(x, y int, col any) *Image {
 
 // DrawRectangle paints a rectangle whose top-left is (x, y).
 func (img *Image) DrawRectangle(x, y int, init func(*Drawable)) *Image {
+	if img.fail() {
+		return img
+	}
 	d := &Drawable{}
 	if init != nil {
 		init(d)
 	}
+	bg, err := nrgbaPtr(d.Background)
+	if err != nil {
+		return img.setErr(err)
+	}
+	bd, err := nrgbaPtr(d.BorderColor)
+	if err != nil {
+		return img.setErr(err)
+	}
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.DrawRectangle(n, x, y, d.Width, d.Height, nrgbaPtr(d.Background), d.BorderSize, nrgbaPtr(d.BorderColor)), nil
+		return modifier.DrawRectangle(n, x, y, d.Width, d.Height, bg, d.BorderSize, bd), nil
 	})
 }
 
 // DrawEllipse paints an ellipse centered at (x, y).
 func (img *Image) DrawEllipse(x, y int, init func(*Drawable)) *Image {
+	if img.fail() {
+		return img
+	}
 	d := &Drawable{}
 	if init != nil {
 		init(d)
@@ -1630,13 +1737,24 @@ func (img *Image) DrawEllipse(x, y int, init func(*Drawable)) *Image {
 	if d.Radius > 0 {
 		rx, ry = d.Radius, d.Radius
 	}
+	bg, err := nrgbaPtr(d.Background)
+	if err != nil {
+		return img.setErr(err)
+	}
+	bd, err := nrgbaPtr(d.BorderColor)
+	if err != nil {
+		return img.setErr(err)
+	}
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.DrawEllipse(n, x, y, rx, ry, nrgbaPtr(d.Background), d.BorderSize, nrgbaPtr(d.BorderColor)), nil
+		return modifier.DrawEllipse(n, x, y, rx, ry, bg, d.BorderSize, bd), nil
 	})
 }
 
 // DrawCircle paints a circle centered at (x, y).
 func (img *Image) DrawCircle(x, y int, init func(*Drawable)) *Image {
+	if img.fail() {
+		return img
+	}
 	d := &Drawable{}
 	if init != nil {
 		init(d)
@@ -1645,19 +1763,38 @@ func (img *Image) DrawCircle(x, y int, init func(*Drawable)) *Image {
 	if r == 0 {
 		r = d.Width / 2
 	}
+	bg, err := nrgbaPtr(d.Background)
+	if err != nil {
+		return img.setErr(err)
+	}
+	bd, err := nrgbaPtr(d.BorderColor)
+	if err != nil {
+		return img.setErr(err)
+	}
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.DrawEllipse(n, x, y, r, r, nrgbaPtr(d.Background), d.BorderSize, nrgbaPtr(d.BorderColor)), nil
+		return modifier.DrawEllipse(n, x, y, r, r, bg, d.BorderSize, bd), nil
 	})
 }
 
 // DrawPolygon paints the polygon described by Drawable.Points.
 func (img *Image) DrawPolygon(init func(*Drawable)) *Image {
+	if img.fail() {
+		return img
+	}
 	d := &Drawable{}
 	if init != nil {
 		init(d)
 	}
+	bg, err := nrgbaPtr(d.Background)
+	if err != nil {
+		return img.setErr(err)
+	}
+	bd, err := nrgbaPtr(d.BorderColor)
+	if err != nil {
+		return img.setErr(err)
+	}
 	return img.replaceAll(func(n *image.NRGBA) (*image.NRGBA, error) {
-		return modifier.DrawPolygon(n, pointsToMod(d.Points), nrgbaPtr(d.Background), d.BorderSize, nrgbaPtr(d.BorderColor)), nil
+		return modifier.DrawPolygon(n, pointsToMod(d.Points), bg, d.BorderSize, bd), nil
 	})
 }
 
@@ -1748,6 +1885,8 @@ func (f *Font) Filename(path string) *Font {
 }
 
 // File is an alias of Filename.
+//
+// Deprecated: use Filename.
 func (f *Font) File(path string) *Font { return f.Filename(path) }
 
 // Size sets the em size in pixels.
@@ -1815,13 +1954,15 @@ func (img *Image) Text(text string, x, y int, fontInit any) *Image {
 	}
 	col, err := ParseColor(fnt.color)
 	if err != nil {
-		col = ColorBlack
+		return img.setErr(err)
 	}
 	strokeCol := ColorWhite
 	if fnt.strokeWidth > 0 {
-		if sc, e := ParseColor(fnt.strokeColor); e == nil {
-			strokeCol = sc
+		sc, e := ParseColor(fnt.strokeColor)
+		if e != nil {
+			return img.setErr(e)
 		}
+		strokeCol = sc
 	}
 	style := modifier.TextStyle{
 		Filename:    fnt.filename,
@@ -1851,6 +1992,8 @@ func (img *Image) encodeOpts(opts []EncodeOptions) (EncodeOptions, error) {
 }
 
 // Encode writes img in format. At most one EncodeOptions value is accepted.
+// Failures return an EncodedImage whose Err, WriteTo, Save, and Result report
+// the same error with encode context.
 func (img *Image) Encode(format Format, opts ...EncodeOptions) EncodedImage {
 	if img.fail() {
 		return encodedErr(img.err)
@@ -1884,9 +2027,20 @@ func (img *Image) Encode(format Format, opts ...EncodeOptions) EncodedImage {
 		err = wrap(ErrNotSupported, "encoding %s is not supported", format)
 	}
 	if err != nil {
-		return encodedErr(err)
+		return encodedErr(annotateEncode(format, err))
 	}
 	return EncodedImage{Data: data, MediaType: format.MediaType()}
+}
+
+func annotateEncode(format Format, err error) error {
+	if err == nil {
+		return nil
+	}
+	var e *errs.Error
+	if errors.As(err, &e) {
+		return err
+	}
+	return wrap(ErrEncoder, "%s encode: %v", format, err)
 }
 
 func stillForOpaque(img *Image) image.Image {
@@ -1955,6 +2109,7 @@ func (img *Image) EncodeByPath(path string, opts ...EncodeOptions) EncodedImage 
 
 // ToJPEG encodes a JPEG. Omitting quality uses 80; a single value sets quality.
 // Extra quality arguments are an error.
+// Error handling: Check the returned EncodedImage with Err, Result, Save, or WriteTo.
 func (img *Image) ToJPEG(quality ...int) EncodedImage {
 	if len(quality) > 1 {
 		return encodedErr(wrap(ErrInput, "ToJPEG accepts at most one quality value"))
@@ -1966,35 +2121,47 @@ func (img *Image) ToJPEG(quality ...int) EncodedImage {
 	return img.Encode(FormatJPEG, o)
 }
 // ToJPG is an alias of ToJPEG.
+//
+// Deprecated: use ToJPEG.
 func (img *Image) ToJPG(quality ...int) EncodedImage { return img.ToJPEG(quality...) }
 
 // ToPNG encodes a PNG. At most one EncodeOptions value is accepted.
+// Error handling: Check the returned EncodedImage with Err, Result, Save, or WriteTo.
 func (img *Image) ToPNG(opts ...EncodeOptions) EncodedImage { return img.Encode(FormatPNG, opts...) }
 
 // ToGIF encodes a GIF. At most one EncodeOptions value is accepted.
 func (img *Image) ToGIF(opts ...EncodeOptions) EncodedImage { return img.Encode(FormatGIF, opts...) }
 
 // ToWebP encodes a lossless VP8L WebP. At most one EncodeOptions value is accepted.
+// Error handling: Check the returned EncodedImage with Err, Result, Save, or WriteTo.
 func (img *Image) ToWebP(opts ...EncodeOptions) EncodedImage { return img.Encode(FormatWEBP, opts...) }
-// ToBitmap encodes a BMP.
-func (img *Image) ToBitmap(opts ...EncodeOptions) EncodedImage {
+
+// ToBMP encodes a BMP.
+func (img *Image) ToBMP(opts ...EncodeOptions) EncodedImage {
 	return img.Encode(FormatBMP, opts...)
 }
 
-// ToBMP is an alias of ToBitmap.
-func (img *Image) ToBMP(opts ...EncodeOptions) EncodedImage { return img.ToBitmap(opts...) }
+// ToBitmap is an alias of ToBMP.
+//
+// Deprecated: use ToBMP.
+func (img *Image) ToBitmap(opts ...EncodeOptions) EncodedImage { return img.ToBMP(opts...) }
 
 // ToTIFF encodes a TIFF.
 func (img *Image) ToTIFF(opts ...EncodeOptions) EncodedImage { return img.Encode(FormatTIFF, opts...) }
 
 // ToTIF is an alias of ToTIFF.
+//
+// Deprecated: use ToTIFF.
 func (img *Image) ToTIF(opts ...EncodeOptions) EncodedImage { return img.ToTIFF(opts...) }
 
 // ToJPEG2000 returns ErrNotSupported; the Go driver does not encode JPEG 2000.
 func (img *Image) ToJPEG2000(opts ...EncodeOptions) EncodedImage {
 	return encodedErr(wrap(ErrNotSupported, "JPEG 2000 encoding is not supported by the Go driver"))
 }
+
 // ToJP2 is an alias of ToJPEG2000.
+//
+// Deprecated: use ToJPEG2000.
 func (img *Image) ToJP2(opts ...EncodeOptions) EncodedImage { return img.ToJPEG2000(opts...) }
 
 // ToAVIF returns ErrNotSupported; the Go driver does not encode AVIF.
@@ -2027,8 +2194,9 @@ func (img *Image) Save(path string, opts ...EncodeOptions) *Image {
 	return img
 }
 
-// EncodedImage is a format-encoded byte buffer. Check Err before using Data.
-// WriteTo implements io.WriterTo for HTTP responses.
+// EncodedImage is a format-encoded byte buffer. Check Err or Result before
+// using Data. WriteTo and Save return the same delayed error, so callers can
+// pick either the fluent Err() style or a direct error return.
 type EncodedImage struct {
 	Data      []byte
 	MediaType string
@@ -2037,6 +2205,14 @@ type EncodedImage struct {
 
 // Err returns the encode or write error, if any.
 func (e EncodedImage) Err() error { return e.err }
+
+// Result returns the encoded payload or the delayed error.
+func (e EncodedImage) Result() ([]byte, error) {
+	if e.err != nil {
+		return nil, e.err
+	}
+	return e.Data, nil
+}
 
 // Bytes returns the encoded payload. It may be nil when Err is set.
 func (e EncodedImage) Bytes() []byte { return e.Data }
@@ -2047,8 +2223,12 @@ func (e EncodedImage) MimeType() string { return e.MediaType }
 // Size returns the payload length in bytes.
 func (e EncodedImage) Size() int { return len(e.Data) }
 
-// ToDataURI returns a data: URI for the payload.
+// ToDataURI returns a data: URI for the payload. An empty string is returned
+// when Err is set.
 func (e EncodedImage) ToDataURI() string {
+	if e.err != nil {
+		return ""
+	}
 	return "data:" + e.MediaType + ";base64," + base64.StdEncoding.EncodeToString(e.Data)
 }
 
@@ -2064,7 +2244,10 @@ func (e EncodedImage) WriteTo(w io.Writer) (int64, error) {
 		return 0, wrap(ErrEncoder, "nil writer")
 	}
 	n, err := w.Write(e.Data)
-	return int64(n), err
+	if err != nil {
+		return int64(n), wrap(ErrEncoder, "write encoded image: %v", err)
+	}
+	return int64(n), nil
 }
 
 // Save writes the payload to path, creating parent directories as needed.

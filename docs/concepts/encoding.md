@@ -36,12 +36,15 @@ func (img *Image) ToTIFF(opts ...EncodeOptions) EncodedImage
 func (img *Image) Encode(format Format, opts ...EncodeOptions) EncodedImage
 
 func (e EncodedImage) Err() error
+func (e EncodedImage) Result() ([]byte, error)
 func (e EncodedImage) Bytes() []byte
 func (e EncodedImage) MimeType() string
 func (e EncodedImage) WriteTo(w io.Writer) (int64, error)
 func (e EncodedImage) Save(path string) error
 func (e EncodedImage) ToDataURI() string
 ```
+
+`Err`, `Result`, `WriteTo`, and `Save` report the same delayed encode failure. Check one of them before using `Bytes` or `ToDataURI`.
 
 | Field / arg | Type | Default | Notes |
 |-------------|------|---------|-------|

@@ -19,49 +19,90 @@ func result(img *Image, err error) *Image {
 	return img
 }
 
+func configOrFailed(opts []Option) (Config, *Image) {
+	cfg, err := applyOptionsChecked(opts)
+	if err != nil {
+		return cfg, failed(err)
+	}
+	return cfg, nil
+}
+
 // New creates a transparent canvas of the given size.
 // Options apply to this image only. Width and height must be >= 1;
 // overflow-sized canvases set ErrInvalidDimensions.
+// Error handling: Check img.Err() after call chain.
 func New(width, height int, opts ...Option) *Image {
-	return newCanvas(width, height, applyOptions(opts))
+	cfg, fail := configOrFailed(opts)
+	if fail != nil {
+		return fail
+	}
+	return newCanvas(width, height, cfg)
 }
 
 // Create is an alias of New.
+//
+// Deprecated: use New.
 func Create(width, height int, opts ...Option) *Image {
 	return New(width, height, opts...)
 }
 
 // Open decodes an image from a filesystem path.
 // The first failure is stored on the returned Image and retrieved with Err().
+// Error handling: Check img.Err() after call chain.
 func Open(path string, opts ...Option) *Image {
-	return result(decodeFile(path, applyOptions(opts)))
+	cfg, fail := configOrFailed(opts)
+	if fail != nil {
+		return fail
+	}
+	return result(decodeFile(path, cfg))
 }
 
 // Decode decodes an image from r.
+// Error handling: Check img.Err() after call chain.
 func Decode(r io.Reader, opts ...Option) *Image {
-	return result(decodeReader(r, applyOptions(opts)))
+	cfg, fail := configOrFailed(opts)
+	if fail != nil {
+		return fail
+	}
+	return result(decodeReader(r, cfg))
 }
 
 // DecodeBytes decodes an image from encoded bytes (JPEG, PNG, GIF, WebP, BMP, TIFF).
 func DecodeBytes(data []byte, opts ...Option) *Image {
-	return result(decodeBytes(data, "", applyOptions(opts)))
+	cfg, fail := configOrFailed(opts)
+	if fail != nil {
+		return fail
+	}
+	return result(decodeBytes(data, "", cfg))
 }
 
 // DecodeDataURI decodes a `data:image/...;base64,...` URI.
 func DecodeDataURI(uri string, opts ...Option) *Image {
-	return result(decodeDataURI(uri, applyOptions(opts)))
+	cfg, fail := configOrFailed(opts)
+	if fail != nil {
+		return fail
+	}
+	return result(decodeDataURI(uri, cfg))
 }
 
 // FromImage copies src into a library-owned NRGBA buffer with draw.Draw.
 // YCbCr, Paletted, RGBA, NRGBA, and other image.Image values are safe: the
 // original Pix slice is never retained.
 func FromImage(src image.Image, opts ...Option) *Image {
-	return result(fromStdImage(src, applyOptions(opts)))
+	cfg, fail := configOrFailed(opts)
+	if fail != nil {
+		return fail
+	}
+	return result(fromStdImage(src, cfg))
 }
 
 // Animate builds a multi-frame GIF. Options apply to the resulting image.
 func Animate(init func(*Animation), opts ...Option) *Image {
-	return buildAnimation(applyOptions(opts), init)
+	cfg, fail := configOrFailed(opts)
+	if fail != nil {
+		return fail
+	}
+	return buildAnimation(cfg, init)
 }
 
 func newCanvas(width, height int, cfg Config) *Image {
@@ -232,6 +273,8 @@ func (a *Animation) Add(src *Image, delaySeconds float64) *Animation {
 }
 
 // AddImage is an alias of Add.
+//
+// Deprecated: use Add.
 func (a *Animation) AddImage(src *Image, delaySeconds float64) *Animation {
 	return a.Add(src, delaySeconds)
 }
@@ -256,6 +299,8 @@ func (a *Animation) SetLoops(n int) *Animation {
 }
 
 // Loops is an alias of SetLoops.
+//
+// Deprecated: use SetLoops.
 func (a *Animation) Loops(n int) *Animation { return a.SetLoops(n) }
 
 func parsePercentOrIndex(v any, total int) (int, error) {

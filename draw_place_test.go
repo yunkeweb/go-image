@@ -59,13 +59,13 @@ func TestFloodFill(t *testing.T) {
 func TestPlace(t *testing.T) {
 	base := Create(20, 20).Fill("#000000")
 	mark := Create(4, 4).Fill("#ff0000")
-	base.Place(mark, "bottom-right", 0, 0, 100)
+	base.Place(mark, AnchorBottomRight)
 	c := base.PickColor(19, 19)
 	if c.R < 200 {
 		t.Fatalf("place %+v", c)
 	}
 	base2 := Create(20, 20).Fill("#000000")
-	base2.Place(mark, "center", 0, 0, 50)
+	base2.Place(mark, AnchorCenter, WithOpacity(50))
 	if base2.Err() != nil {
 		t.Fatal(base2.Err())
 	}

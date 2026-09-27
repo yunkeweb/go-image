@@ -6,10 +6,10 @@ Ecommerce images usually need a logo in the corner and a timestamp or SKU as tex
 
 1. `Open` the product photo; `Cover` to a catalog size.
 2. `Open` the logo, `Resize` it so it stays ~10% of the width.
-3. `Place(logo, "bottom-right", 16, 16, 70)`.
+3. `Place(logo, AnchorBottomRight, WithOffset(16, 16), WithOpacity(70))`.
 4. `Text` with a `func(*Font)` callback for color, stroke, and alignment.
 
-`Place` requires `*Image`. A failed logo (missing file) sticks on the destination via `ErrInput` / decoder error — check `Err()` once.
+`Place` accepts `image.Image` (including `*Image`). A failed logo (missing file) sticks on the destination via `ErrInput` / decoder error — check `Err()` once.
 
 ## Example: package-level logo + caption
 
@@ -26,7 +26,7 @@ func main() {
 	logo := goimage.Open("logo.png").Resize(120)
 	img := goimage.Open("product.jpg").
 		Cover(1200, 800).
-		Place(logo, "bottom-right", 16, 16, 70)
+		Place(logo, goimage.AnchorBottomRight, goimage.WithOffset(16, 16), goimage.WithOpacity(70))
 	img.Text("ACME", 24, 40, func(f *goimage.Font) {
 		f.Size(22).Color("#ffffff").Stroke("#000000", 2)
 	})
@@ -60,7 +60,7 @@ func main() {
 	})
 
 	img := goimage.Open("product.jpg", goimage.WithAutoOrientation(true)).
-		Place(badge, "top-left", 12, 12, 90)
+		Place(badge, goimage.AnchorTopLeft, goimage.WithOffset(12, 12), goimage.WithOpacity(90))
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}

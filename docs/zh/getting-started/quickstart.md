@@ -95,7 +95,7 @@ thumb := goimage.Open("photo.jpg", goimage.WithConfig(cfg)).Cover(200, 200)
 
 ```go
 wide := goimage.Open("photo.jpg").Resize(800) // 高度按比例计算
-box := goimage.Open("photo.jpg").Cover(400, 300, goimage.WithAnchor("top"))
+box := goimage.Open("photo.jpg").Cover(400, 300, goimage.WithAnchor(goimage.AnchorTop))
 ```
 
 ## 下一步

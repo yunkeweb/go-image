@@ -13,7 +13,7 @@ Crop 不做重采样。结果的像素尺寸就是 `width×height`。矩形超�
 ```go
 func (img *Image) Crop(width, height int, opts ...GeometryOption) *Image
 
-func WithAnchor(anchor string) GeometryOption
+func WithAnchor(anchor Anchor) GeometryOption
 func WithBackground(color any) GeometryOption
 func WithOffset(x, y int) GeometryOption
 ```

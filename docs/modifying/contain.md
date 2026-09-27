@@ -14,7 +14,7 @@ Contain is the opposite of [Cover](/modifying/cover): Cover discards overflow, C
 func (img *Image) Contain(width, height int, opts ...GeometryOption) *Image
 func (img *Image) Pad(width, height int, opts ...GeometryOption) *Image
 
-func WithAnchor(anchor string) GeometryOption
+func WithAnchor(anchor Anchor) GeometryOption
 func WithBackground(color any) GeometryOption
 ```
 

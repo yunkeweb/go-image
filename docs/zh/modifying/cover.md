@@ -15,7 +15,7 @@ func (img *Image) Cover(width, height int, opts ...GeometryOption) *Image
 func (img *Image) CoverDown(width, height int, opts ...GeometryOption) *Image
 func (img *Image) Fit(width, height int, opts ...GeometryOption) *Image
 
-func WithAnchor(anchor string) GeometryOption
+func WithAnchor(anchor Anchor) GeometryOption
 func WithOffset(x, y int) GeometryOption
 ```
 

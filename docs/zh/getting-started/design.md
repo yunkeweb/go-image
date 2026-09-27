@@ -20,7 +20,7 @@ raw := goimage.Decode(reader)
 
 | 选项 | 作用对象 | 默认值 |
 |------|----------|--------|
-| `WithAnchor(name)` | Cover、Contain、Pad、Crop、画布 | `center`（Crop 为 `top-left`） |
+| `WithAnchor(AnchorCenter)` | Cover、Contain、Pad、Crop、画布 | `AnchorCenter`（Crop 为 `AnchorTopLeft`） |
 | `WithBackground(color)` | Contain、Pad、Crop、画布 | `"ffffff"` |
 | `WithOffset(x, y)` | Crop | `0, 0` |
 
@@ -38,11 +38,15 @@ Go 没有函数重载。入口按源类型命名：
 | `FromImage` | `image.Image` |
 | `New` | `int, int` 画布 |
 
-`Place` 的参数是 `*Image`。先打开叠加层：
+`Place` 接受任意 `image.Image` 和 `Anchor`。偏移和透明度用 Option：
 
 ```go
-img.Place(goimage.Open("logo.png"), "bottom-right", 16, 16, 70)
+img.Place(goimage.Open("logo.png"), goimage.AnchorBottomRight, goimage.WithOffset(16, 16), goimage.WithOpacity(70))
 ```
+
+未知锚点和非法颜色会写入 `Image.Err()`，不会静默变成 `top-left` 或白色。
+
+推荐名称是 `New`、`Cover`、`Add`、`SetLoops`、`ToBMP`、`ToJPEG`、`Orient`。`Create`、`Fit`、`AddImage`、`ToBitmap`、`Orientate` 等别名仍可用，但已标记弃用。
 
 ## 延迟错误与 goroutine
 

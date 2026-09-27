@@ -4,13 +4,14 @@ go-image 把第一次失败记在 `Image` 上，链式调用保持流畅。该�
 
 ## 功能概述
 
-修改方法返回同一个 `*Image`。若 `Err()` 已有值，后续修饰变成空操作。编码辅助返回 `EncodedImage`；检查 `enc.Err()` 或 `Save` / `WriteTo` 的返回值。几何方法收到 `0` 或负数尺寸时写入 `ErrInvalidDimensions`（同时包裹 `ErrGeometry`）。
+修改方法返回同一个 `*Image`。若 `Err()` 已有值，后续修饰变成空操作。编码辅助返回 `EncodedImage`；检查 `enc.Err()`、`enc.Result()` 或 `Save` / `WriteTo` 的返回值。几何方法收到 `0` 或负数尺寸时写入 `ErrInvalidDimensions`（同时包裹 `ErrGeometry`）。未知锚点写入 `ErrGeometry`。非法颜色字符串写入 `ErrColor`，不会回退成白色。
 
 ## 签名
 
 ```go
 func (img *Image) Err() error
 func (e EncodedImage) Err() error
+func (e EncodedImage) Result() ([]byte, error)
 ```
 
 ## 哨兵错误

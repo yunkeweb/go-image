@@ -22,7 +22,7 @@ Geometry helpers (`Cover`, `Contain`, `Pad`, `Crop`, `Fit`, `ResizeCanvas`) take
 
 | Option | Applies to | Default |
 |--------|------------|---------|
-| `WithAnchor(name)` | Cover, Contain, Pad, Crop, canvas | `center` (Crop: `top-left`) |
+| `WithAnchor(AnchorCenter)` | Cover, Contain, Pad, Crop, canvas | `AnchorCenter` (Crop: `AnchorTopLeft`) |
 | `WithBackground(color)` | Contain, Pad, Crop, canvas | `"ffffff"` |
 | `WithOffset(x, y)` | Crop | `0, 0` |
 
@@ -40,11 +40,15 @@ Go has no function overloading. Entry points are named by the source type:
 | `FromImage` | `image.Image` |
 | `New` | `int, int` canvas |
 
-`Place` takes `*Image`. Open the overlay first:
+`Place` takes any `image.Image` and an `Anchor`. Offset and opacity are options:
 
 ```go
-img.Place(goimage.Open("logo.png"), "bottom-right", 16, 16, 70)
+img.Place(goimage.Open("logo.png"), goimage.AnchorBottomRight, goimage.WithOffset(16, 16), goimage.WithOpacity(70))
 ```
+
+Unknown anchors and illegal colors set `Image.Err()`. They are never silently replaced with `top-left` or white.
+
+Preferred names are `New`, `Cover`, `Add`, `SetLoops`, `ToBMP`, `ToJPEG`, `Orient`. Aliases such as `Create`, `Fit`, `AddImage`, `ToBitmap`, and `Orientate` remain but are deprecated.
 
 ## Delayed errors and goroutines
 
@@ -99,7 +103,7 @@ Application code imports only the root module.
 - `Resize(400)` / `Scale(400)` omit height and keep aspect ratio.
 - `Resize(400, 300)` sets both sides. Zero or negative sizes yield `ErrInvalidDimensions`. `0` is never “auto”.
 - Cover, Contain, Pad, Crop, Fit, and ResizeCanvas take `WithAnchor`, `WithBackground`, and `WithOffset`.
-- Nine-point pivots: `center`, `top`, `top-left`, `top-right`, `left`, `right`, `bottom`, `bottom-left`, `bottom-right`.
+- Nine-point pivots: `AnchorCenter`, `AnchorTop`, `AnchorTopLeft`, `AnchorTopRight`, `AnchorLeft`, `AnchorRight`, `AnchorBottom`, `AnchorBottomLeft`, `AnchorBottomRight`. String literals still compile.
 - `Rotate` is counter-clockwise.
 - `Cover` / `Fit` fill a box and crop overflow. `Contain` / `Pad` letterbox.
 - Resampling uses Catmull-Rom (`golang.org/x/image/draw`).

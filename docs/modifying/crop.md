@@ -13,7 +13,7 @@ For “fill this aspect and resample”, use [Cover](/modifying/cover). For chan
 ```go
 func (img *Image) Crop(width, height int, opts ...GeometryOption) *Image
 
-func WithAnchor(anchor string) GeometryOption
+func WithAnchor(anchor Anchor) GeometryOption
 func WithBackground(color any) GeometryOption
 func WithOffset(x, y int) GeometryOption
 ```

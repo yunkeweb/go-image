@@ -41,6 +41,7 @@ func WithDecodeAnimation(v bool) Option {
 }
 
 // WithBlendingColor sets the color used when flattening transparency for JPEG/BMP.
+// Invalid colors are reported on the Image via Err() at New/Open/Decode time.
 func WithBlendingColor(color any) Option {
 	return func(c *Config) { c.BlendingColor = color }
 }
@@ -55,26 +56,86 @@ func WithConfig(c Config) Option {
 	return func(dst *Config) { *dst = c }
 }
 
+// Anchor is a 9-point pivot used by Cover, Crop, Place, and related helpers.
+// String literals such as "center" still convert; prefer the exported constants.
+type Anchor string
+
+const (
+	AnchorTopLeft      Anchor = "top-left"
+	AnchorTop          Anchor = "top"
+	AnchorTopRight     Anchor = "top-right"
+	AnchorLeft         Anchor = "left"
+	AnchorCenter       Anchor = "center"
+	AnchorRight        Anchor = "right"
+	AnchorBottomLeft   Anchor = "bottom-left"
+	AnchorBottom       Anchor = "bottom"
+	AnchorBottomRight  Anchor = "bottom-right"
+)
+
+// String returns the canonical hyphenated name.
+func (a Anchor) String() string { return string(a) }
+
+// ParseAnchor canonicalizes a 9-point position name or a documented synonym.
+// Unknown values return ErrGeometry; they are never treated as top-left.
+func ParseAnchor(s string) (Anchor, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "top-left", "left-top":
+		return AnchorTopLeft, nil
+	case "top", "top-center", "top-middle", "center-top", "middle-top":
+		return AnchorTop, nil
+	case "top-right", "right-top":
+		return AnchorTopRight, nil
+	case "left", "left-center", "left-middle", "center-left", "middle-left":
+		return AnchorLeft, nil
+	case "center", "middle", "center-center", "middle-middle":
+		return AnchorCenter, nil
+	case "right", "right-center", "right-middle", "center-right", "middle-right":
+		return AnchorRight, nil
+	case "bottom-left", "left-bottom":
+		return AnchorBottomLeft, nil
+	case "bottom", "bottom-center", "bottom-middle", "center-bottom", "middle-bottom":
+		return AnchorBottom, nil
+	case "bottom-right", "right-bottom":
+		return AnchorBottomRight, nil
+	default:
+		return "", wrap(ErrGeometry, "invalid anchor %q", s)
+	}
+}
+
+func resolveAnchor(raw string, fallback Anchor) (Anchor, error) {
+	if strings.TrimSpace(raw) == "" {
+		return fallback, nil
+	}
+	return ParseAnchor(raw)
+}
+
 type geometrySettings struct {
 	anchor     string
 	background any
 	offsetX    int
 	offsetY    int
+	opacity    int
 }
 
 // GeometryOption configures Cover, Contain, Pad, Crop, Fit, and canvas helpers.
 type GeometryOption func(*geometrySettings)
 
-// WithAnchor sets the 9-point pivot (center, top-left, bottom-right, …).
-func WithAnchor(anchor string) GeometryOption {
+// PlaceOption configures Place. WithOffset and WithOpacity are the usual options.
+type PlaceOption = GeometryOption
+
+// WithAnchor sets the 9-point pivot. Untyped string literals such as "center"
+// still compile; prefer AnchorCenter, AnchorTopLeft, and the other constants.
+// Unknown names are stored and reported as Image.Err() when the modifier runs.
+func WithAnchor(anchor Anchor) GeometryOption {
 	return func(s *geometrySettings) {
-		if strings.TrimSpace(anchor) != "" {
-			s.anchor = anchor
+		if strings.TrimSpace(string(anchor)) != "" {
+			s.anchor = string(anchor)
 		}
 	}
 }
 
 // WithBackground sets the fill color for new canvas pixels.
+// Invalid colors are reported as Image.Err() when the modifier runs.
 func WithBackground(color any) GeometryOption {
 	return func(s *geometrySettings) {
 		if color != nil {
@@ -83,11 +144,19 @@ func WithBackground(color any) GeometryOption {
 	}
 }
 
-// WithOffset shifts the crop origin after the anchor is applied.
+// WithOffset shifts the crop origin or Place overlay after the anchor is applied.
 func WithOffset(x, y int) GeometryOption {
 	return func(s *geometrySettings) {
 		s.offsetX = x
 		s.offsetY = y
+	}
+}
+
+// WithOpacity sets Place overlay opacity in the inclusive range 0–100.
+// Values outside that range set Image.Err(); they are not clamped.
+func WithOpacity(opacity int) PlaceOption {
+	return func(s *geometrySettings) {
+		s.opacity = opacity
 	}
 }
 
@@ -129,4 +198,12 @@ func applyOptions(opts []Option) Config {
 		}
 	}
 	return cfg
+}
+
+func applyOptionsChecked(opts []Option) (Config, error) {
+	cfg := applyOptions(opts)
+	if _, err := ParseColor(cfg.BlendingColor); err != nil {
+		return cfg, err
+	}
+	return cfg, nil
 }

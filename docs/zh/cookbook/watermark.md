@@ -6,10 +6,10 @@
 
 1. `Open` 商品图；`Cover` 到目录尺寸。
 2. `Open` Logo，`Resize` 到大约宽度的 10%。
-3. `Place(logo, "bottom-right", 16, 16, 70)`。
+3. `Place(logo, AnchorBottomRight, WithOffset(16, 16), WithOpacity(70))`。
 4. 用 `func(*Font)` 回调写 `Text`，配置颜色、描边和对齐。
 
-`Place` 需要 `*Image`。Logo 失败（文件缺失）会通过 `ErrInput` / 解码错误粘到目标上 — 检查一次 `Err()` 即可。
+`Place` 接受 `image.Image`（包括 `*Image`）。Logo 失败（文件缺失）会通过 `ErrInput` / 解码错误粘到目标上 — 检查一次 `Err()` 即可。
 
 ## 示例：包级 Logo + 标题
 
@@ -26,7 +26,7 @@ func main() {
 	logo := goimage.Open("logo.png").Resize(120)
 	img := goimage.Open("product.jpg").
 		Cover(1200, 800).
-		Place(logo, "bottom-right", 16, 16, 70)
+		Place(logo, goimage.AnchorBottomRight, goimage.WithOffset(16, 16), goimage.WithOpacity(70))
 	img.Text("ACME", 24, 40, func(f *goimage.Font) {
 		f.Size(22).Color("#ffffff").Stroke("#000000", 2)
 	})
@@ -60,7 +60,7 @@ func main() {
 	})
 
 	img := goimage.Open("product.jpg", goimage.WithAutoOrientation(true)).
-		Place(badge, "top-left", 12, 12, 90)
+		Place(badge, goimage.AnchorTopLeft, goimage.WithOffset(12, 12), goimage.WithOpacity(90))
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}

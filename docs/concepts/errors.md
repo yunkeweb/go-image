@@ -4,13 +4,14 @@ go-image stores the first failure on the `Image` value so chains stay fluent. Th
 
 ## Overview
 
-Mutating methods return the same `*Image`. If `Err()` is already set, later modifiers are no-ops. Encode helpers return `EncodedImage`; check `enc.Err()` or the error from `Save` / `WriteTo`. Geometry that receives `0` or a negative size sets `ErrInvalidDimensions` (wrapped with `ErrGeometry`).
+Mutating methods return the same `*Image`. If `Err()` is already set, later modifiers are no-ops. Encode helpers return `EncodedImage`; check `enc.Err()`, `enc.Result()`, or the error from `Save` / `WriteTo`. Geometry that receives `0` or a negative size sets `ErrInvalidDimensions` (wrapped with `ErrGeometry`). Unknown anchors set `ErrGeometry`. Invalid color strings set `ErrColor` instead of falling back to white.
 
 ## Signature
 
 ```go
 func (img *Image) Err() error
 func (e EncodedImage) Err() error
+func (e EncodedImage) Result() ([]byte, error)
 ```
 
 ## Sentinel errors

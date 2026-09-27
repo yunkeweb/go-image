@@ -36,12 +36,15 @@ func (img *Image) ToTIFF(opts ...EncodeOptions) EncodedImage
 func (img *Image) Encode(format Format, opts ...EncodeOptions) EncodedImage
 
 func (e EncodedImage) Err() error
+func (e EncodedImage) Result() ([]byte, error)
 func (e EncodedImage) Bytes() []byte
 func (e EncodedImage) MimeType() string
 func (e EncodedImage) WriteTo(w io.Writer) (int64, error)
 func (e EncodedImage) Save(path string) error
 func (e EncodedImage) ToDataURI() string
 ```
+
+`Err`、`Result`、`WriteTo` 和 `Save` 报告同一次延迟编码失败。使用 `Bytes` 或 `ToDataURI` 之前先检查其中之一。
 
 | 字段 / 参数 | 类型 | 默认值 | 说明 |
 |-------------|------|--------|------|

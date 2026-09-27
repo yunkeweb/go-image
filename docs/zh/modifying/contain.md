@@ -14,7 +14,7 @@ Contain 与 [Cover](/zh/modifying/cover) 相反：Cover 丢掉溢出，Contain �
 func (img *Image) Contain(width, height int, opts ...GeometryOption) *Image
 func (img *Image) Pad(width, height int, opts ...GeometryOption) *Image
 
-func WithAnchor(anchor string) GeometryOption
+func WithAnchor(anchor Anchor) GeometryOption
 func WithBackground(color any) GeometryOption
 ```
 

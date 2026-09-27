@@ -1,27 +1,34 @@
 # Place
 
-`Place` composites another `*Image` onto the current canvas. Position is a 9-point anchor. `opacity` is 0–100. Offsets are pixels inward from that anchor.
+`Place` composites another image onto the current canvas at a 9-point [Anchor](/getting-started/design). Offset and opacity are options, so callers cannot mix up a run of integers.
 
 ## Overview
 
-Open the overlay with `Open` / `Decode` / `New`, then pass it as `src`. A nil overlay or an overlay that already failed sets `ErrInput` (or the overlay's error) on the destination. The overlay is drawn on every destination frame using its primary buffer.
+Open the overlay with `Open` / `Decode` / `New`, or pass any `image.Image`. A nil overlay or an overlay `*Image` that already failed sets `ErrInput` (or the overlay's error) on the destination. The overlay is drawn on every destination frame.
+
+Unknown anchors and opacity outside 0–100 set `Image.Err()`. They are never silently clamped or treated as `top-left`.
 
 This is the watermark primitive. See [Dynamic Watermark](/cookbook/watermark) for date stamps and [HTTP Handler](/cookbook/http) for streaming the result.
 
 ## Signature
 
 ```go
-func (img *Image) Place(src *Image, position string, offsetX, offsetY, opacity int) *Image
+func (img *Image) Place(src image.Image, position Anchor, options ...PlaceOption) *Image
+
+func WithOffset(x, y int) GeometryOption
+func WithOpacity(opacity int) PlaceOption
 ```
+
+Error handling: Check `img.Err()` after the call chain.
 
 ## Parameters
 
 | Name | Type | Default | Description |
 |------|------|---------|-------------|
-| `src` | `*Image` | required | Overlay. Must be non-nil and `Err() == nil` |
-| `position` | `string` | required | `center`, `top`, `top-left`, `top-right`, `left`, `right`, `bottom`, `bottom-left`, `bottom-right` |
-| `offsetX`, `offsetY` | `int` | required | Inward shift from the anchor, pixels |
-| `opacity` | `int` | required | 0–100. `100` is opaque |
+| `src` | `image.Image` | required | Overlay. `*Image` must be non-nil and `Err() == nil` |
+| `position` | `Anchor` | required | Prefer `AnchorBottomRight`, `AnchorCenter`, … String literals such as `"center"` still compile |
+| `WithOffset` | `int, int` | `0, 0` | Inward shift from the anchor, pixels |
+| `WithOpacity` | `int` | `100` | 0–100. Values outside that range set `Err()` |
 
 ## Example: package-level logo watermark
 
@@ -38,7 +45,7 @@ func main() {
 	logo := goimage.Open("logo.png")
 	img := goimage.Open("photo.jpg").
 		Cover(1200, 800).
-		Place(logo, "bottom-right", 16, 16, 70)
+		Place(logo, goimage.AnchorBottomRight, goimage.WithOffset(16, 16), goimage.WithOpacity(70))
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}
@@ -66,7 +73,7 @@ func main() {
 			f.Size(14).Color("#ffffff").Align("center")
 		})
 	img := goimage.Open("product.jpg").
-		Place(badge, "top-left", 12, 12, 100)
+		Place(badge, goimage.AnchorTopLeft, goimage.WithOffset(12, 12))
 	if err := img.Err(); err != nil {
 		log.Fatal(err)
 	}
@@ -79,4 +86,4 @@ func main() {
 ## Notes
 
 - Scale the overlay before `Place` if you need a smaller mark: `logo.Resize(120)`.
-- Opacity `0` makes the overlay invisible; values are not clamped in the signature — keep them in 0–100.
+- Opacity `0` makes the overlay invisible. Omit `WithOpacity` for a fully opaque mark.

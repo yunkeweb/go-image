@@ -23,6 +23,9 @@ func FromImage(src image.Image, opts ...Option) *Image
 | `WithDecodeAnimation` | `bool` | `true` | 保留全部 GIF 帧；`false` 只留首帧 |
 | `WithBlendingColor` | `any` | `"ffffff"` | JPEG 编码时的压扁色 |
 | `WithStrip` | `bool` | `false` | 编码时丢弃 ICC 配置 |
+| `WithLimits` | `Limits` | 全 0 | 解码资源上限；零字段表示不限制 |
+
+`Limits` 在 `Open`、`Decode`、`DecodeBytes`、`DecodeDataURI` 分配像素缓冲之前检查。`MaxPixels` 对静图是 `宽 × 高`，对 GIF 是 `宽 × 高 × 帧数`。超限返回 `ErrLimit`。
 
 ## 编码 API
 
@@ -49,10 +52,12 @@ func (e EncodedImage) ToDataURI() string
 | 字段 / 参数 | 类型 | 默认值 | 说明 |
 |-------------|------|--------|------|
 | `ToJPEG` quality | `...int` | `80` | 限制在 1–100；`<= 0` 使用 80 |
-| `EncodeOptions.Quality` | `int` | `80` | JPEG / WebP |
-| `EncodeOptions.Progressive` | `bool` | `false` | 接受该字段；标准库 JPEG 写 baseline |
-| `EncodeOptions.Indexed` | `bool` | `false` | PNG 调色板 |
-| WebP | | | 仅无损 VP8L |
+| `EncodeOptions.Quality` | `int` | `80` | 仅 JPEG。在 PNG/GIF/WebP/BMP/TIFF 上非 0 为 `ErrNotSupported` |
+| `EncodeOptions.Progressive` | `bool` | `false` | 未实现（为 true 时 `ErrNotSupported`） |
+| `EncodeOptions.Indexed` | `bool` | `false` | 为 true 时未实现 |
+| `EncodeOptions.Interlaced` | `bool` | `false` | 为 true 时未实现 |
+| `EncodeOptions.Bitdepth` | `int` | `0` | 非 0 时未实现 |
+| WebP | | | 仅无损 VP8L；`Quality` 无效 |
 
 `ToAVIF`、`ToHEIC`、`ToJPEG2000` 返回的 `EncodedImage.Err()` 为 `ErrNotSupported`。
 
@@ -107,7 +112,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	png := img.ToPNG(goimage.EncodeOptions{Indexed: false})
+	png := img.ToPNG()
 	if err := png.Save("out.png"); err != nil {
 		log.Fatal(err)
 	}

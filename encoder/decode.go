@@ -28,6 +28,20 @@ func ReadFile(path string) ([]byte, error) {
 	return data, nil
 }
 
+// ReadFileLimited is ReadFile with an optional MaxInputBytes cap (0 = unlimited).
+func ReadFileLimited(path string, maxBytes int64) ([]byte, error) {
+	if maxBytes > 0 {
+		fi, err := os.Stat(path)
+		if err != nil {
+			return nil, errs.Wrap(errs.ErrDecoder, "unable to read file: %v", err)
+		}
+		if fi.Size() > maxBytes {
+			return nil, errs.Wrap(errs.ErrLimit, "input exceeds MaxInputBytes (%d)", maxBytes)
+		}
+	}
+	return ReadFile(path)
+}
+
 // ReadAll drains r and wraps I/O failures as ErrDecoder.
 func ReadAll(r io.Reader) ([]byte, error) {
 	if r == nil {
@@ -36,6 +50,24 @@ func ReadAll(r io.Reader) ([]byte, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, errs.Wrap(errs.ErrDecoder, "unable to read input: %v", err)
+	}
+	return data, nil
+}
+
+// ReadAllLimited drains r up to maxBytes+1 (0 = unlimited) and rejects overflow.
+func ReadAllLimited(r io.Reader, maxBytes int64) ([]byte, error) {
+	if r == nil {
+		return nil, errs.Wrap(errs.ErrDecoder, "nil reader")
+	}
+	if maxBytes <= 0 {
+		return ReadAll(r)
+	}
+	data, err := io.ReadAll(io.LimitReader(r, maxBytes+1))
+	if err != nil {
+		return nil, errs.Wrap(errs.ErrDecoder, "unable to read input: %v", err)
+	}
+	if int64(len(data)) > maxBytes {
+		return nil, errs.Wrap(errs.ErrLimit, "input exceeds MaxInputBytes (%d)", maxBytes)
 	}
 	return data, nil
 }
@@ -75,6 +107,93 @@ func DecodeGIF(data []byte) (*gif.GIF, error) {
 		return nil, errs.Wrap(errs.ErrDecoder, "unable to decode gif: %v", err)
 	}
 	return g, nil
+}
+
+// DecodeConfig reads width and height without allocating a pixel buffer.
+func DecodeConfig(data []byte) (image.Config, string, error) {
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+	if err == nil {
+		return cfg, format, nil
+	}
+	if cfg, err := webp.DecodeConfig(bytes.NewReader(data)); err == nil {
+		return cfg, "webp", nil
+	}
+	if cfg, err := bmp.DecodeConfig(bytes.NewReader(data)); err == nil {
+		return cfg, "bmp", nil
+	}
+	if cfg, err := tiff.DecodeConfig(bytes.NewReader(data)); err == nil {
+		return cfg, "tiff", nil
+	}
+	return image.Config{}, "", err
+}
+
+// CountGIFFrames walks GIF image descriptors without decoding pixels.
+func CountGIFFrames(data []byte) (int, error) {
+	if !IsGIF(data) || len(data) < 13 {
+		return 0, errs.Wrap(errs.ErrDecoder, "not a gif")
+	}
+	packed := data[10]
+	i := 13
+	if packed&0x80 != 0 {
+		i += 3 * (1 << (1 + int(packed&7)))
+	}
+	n := 0
+	for i < len(data) {
+		switch data[i] {
+		case 0x3b:
+			return n, nil
+		case 0x21:
+			i++
+			if i >= len(data) {
+				return 0, errs.Wrap(errs.ErrDecoder, "truncated gif")
+			}
+			i++ // label
+			var err error
+			i, err = skipGIFSubBlocks(data, i)
+			if err != nil {
+				return 0, err
+			}
+		case 0x2c:
+			if i+10 > len(data) {
+				return 0, errs.Wrap(errs.ErrDecoder, "truncated gif")
+			}
+			imgPacked := data[i+9]
+			i += 10
+			if imgPacked&0x80 != 0 {
+				i += 3 * (1 << (1 + int(imgPacked&7)))
+			}
+			if i >= len(data) {
+				return 0, errs.Wrap(errs.ErrDecoder, "truncated gif")
+			}
+			i++ // LZW minimum code size
+			var err error
+			i, err = skipGIFSubBlocks(data, i)
+			if err != nil {
+				return 0, err
+			}
+			n++
+		default:
+			return 0, errs.Wrap(errs.ErrDecoder, "invalid gif block")
+		}
+	}
+	return n, nil
+}
+
+func skipGIFSubBlocks(data []byte, i int) (int, error) {
+	for {
+		if i >= len(data) {
+			return 0, errs.Wrap(errs.ErrDecoder, "truncated gif")
+		}
+		sz := int(data[i])
+		i++
+		if sz == 0 {
+			return i, nil
+		}
+		if i+sz > len(data) {
+			return 0, errs.Wrap(errs.ErrDecoder, "truncated gif")
+		}
+		i += sz
+	}
 }
 
 // DecodeStill decodes a single-frame raster (JPEG, PNG, GIF, WebP, BMP, TIFF).

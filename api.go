@@ -114,6 +114,9 @@ func newCanvas(width, height int, cfg Config) *Image {
 	if width < 1 || height < 1 {
 		return failed(wrap(ErrGeometry, "width and height must be >= 1"))
 	}
+	if err := checkImageLimits(cfg, width, height, 1); err != nil {
+		return failed(err)
+	}
 	if _, err := pool.PixBytes(width, height); err != nil {
 		return failed(wrap(ErrInvalidDimensions, "invalid dimensions"))
 	}
@@ -127,7 +130,7 @@ func newCanvas(width, height int, cfg Config) *Image {
 }
 
 func decodeFile(path string, cfg Config) (*Image, error) {
-	data, err := encoder.ReadFile(path)
+	data, err := encoder.ReadFileLimited(path, cfg.Limits.MaxInputBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +138,7 @@ func decodeFile(path string, cfg Config) (*Image, error) {
 }
 
 func decodeReader(r io.Reader, cfg Config) (*Image, error) {
-	data, err := encoder.ReadAll(r)
+	data, err := encoder.ReadAllLimited(r, cfg.Limits.MaxInputBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +148,10 @@ func decodeReader(r io.Reader, cfg Config) (*Image, error) {
 func fromStdImage(src image.Image, cfg Config) (*Image, error) {
 	if src == nil {
 		return nil, wrap(ErrDecoder, "nil image")
+	}
+	b := src.Bounds()
+	if err := checkImageLimits(cfg, b.Dx(), b.Dy(), 1); err != nil {
+		return nil, err
 	}
 	n := pool.AsNRGBA(src)
 	if n == nil {
@@ -167,11 +174,31 @@ func decodeBytes(data []byte, path string, cfg Config) (*Image, error) {
 	if len(data) == 0 {
 		return nil, wrap(ErrDecoder, "empty input")
 	}
+	if err := checkInputBytes(cfg, int64(len(data))); err != nil {
+		return nil, err
+	}
 	origin := Origin{FilePath: path, MediaType: encoder.SniffMediaType(data)}
+
+	conf, _, err := encoder.DecodeConfig(data)
+	if err != nil {
+		return nil, wrap(ErrDecoder, "unable to decode input: %v", err)
+	}
+	frames := 1
+	if encoder.IsGIF(data) {
+		if n, cerr := encoder.CountGIFFrames(data); cerr == nil && n > 0 {
+			frames = n
+		}
+	}
+	if err := checkImageLimits(cfg, conf.Width, conf.Height, frames); err != nil {
+		return nil, err
+	}
 
 	if encoder.IsGIF(data) {
 		g, err := encoder.DecodeGIF(data)
 		if err != nil {
+			return nil, err
+		}
+		if err := checkImageLimits(cfg, conf.Width, conf.Height, len(g.Image)); err != nil {
 			return nil, err
 		}
 		img := imageFromGIF(g, cfg, origin)

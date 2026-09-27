@@ -73,7 +73,7 @@ img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true))
 | `New` | canvas width and height |
 | `Animate` | frame builder callback |
 
-Functional options (`WithAutoOrientation`, `WithDecodeAnimation`, `WithBlendingColor`, `WithStrip`) apply to a single call. Shared settings live in `Config` / `DefaultConfig()` and attach with `WithConfig`:
+Functional options (`WithAutoOrientation`, `WithDecodeAnimation`, `WithBlendingColor`, `WithStrip`, `WithLimits`) apply to a single call. Shared settings live in `Config` / `DefaultConfig()` and attach with `WithConfig`. Zero `Limits` fields are unlimited.
 
 ```go
 cfg := goimage.DefaultConfig()
@@ -128,7 +128,8 @@ _, _ = enc.WriteTo(w) // http.ResponseWriter, Gin, or any io.Writer
 ## Tests
 
 ```bash
-go test -v ./...
+go test -v -race ./...
+go vet ./...
 ```
 
 ## License

@@ -25,7 +25,8 @@ func (e EncodedImage) Result() ([]byte, error)
 | `ErrInvalidDimensions` | 宽或高为 `0` 或负数 |
 | `ErrColor` | 无法解析的颜色 |
 | `ErrInput` | 参数错误（动画下标、空水印） |
-| `ErrNotSupported` | AVIF / HEIC / JPEG 2000，或对动图 Trim |
+| `ErrLimit` | 解码超过 `Limits`（字节、尺寸、像素或帧数） |
+| `ErrNotSupported` | AVIF / HEIC / JPEG 2000、动图 Trim，或未实现的编码选项 |
 | `ErrNotWritable` | 文件系统写入失败 |
 | `ErrAnimation` | 空动画构建器或空帧 |
 | `ErrFont` | 字体文件加载失败 |

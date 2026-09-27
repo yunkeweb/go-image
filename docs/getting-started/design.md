@@ -16,7 +16,7 @@ Shared decode settings live in `Config`. Call `DefaultConfig()` (or build a `Con
 
 ## Functional options
 
-`opts ...Option` works on `Open`, `Decode`, `DecodeBytes`, `FromImage`, `New`, and `Animate`. Each call copies `DefaultConfig()` and applies the functions. Concurrent callers never share mutable global state.
+`opts ...Option` works on `Open`, `Decode`, `DecodeBytes`, `FromImage`, `New`, and `Animate`. Each call copies `DefaultConfig()` and applies the functions. Concurrent callers never share mutable global state. `WithLimits` caps input bytes, width, height, total pixels, and GIF frames; zero fields are unlimited.
 
 Geometry helpers (`Cover`, `Contain`, `Pad`, `Crop`, `Fit`, `ResizeCanvas`) take `...GeometryOption`:
 

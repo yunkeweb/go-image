@@ -14,6 +14,17 @@ type Config struct {
 	DecodeAnimation bool
 	BlendingColor   any
 	Strip           bool
+	Limits          Limits
+}
+
+// Limits caps decode resource use. A zero field means that check is skipped.
+// DefaultConfig leaves every field at zero so existing callers are unchanged.
+type Limits struct {
+	MaxInputBytes int64
+	MaxWidth      int
+	MaxHeight     int
+	MaxPixels     int64
+	MaxFrames     int
 }
 
 var defaultConfig = Config{
@@ -25,8 +36,9 @@ var defaultConfig = Config{
 
 // DefaultConfig returns a copy of the package decode defaults.
 // AutoOrientation and DecodeAnimation are true; BlendingColor is "ffffff".
-// Callers mutate the returned value and pass it with WithConfig; the package
-// default itself is immutable and safe for concurrent New/Open/Decode.
+// Limits are all zero (unlimited). Callers mutate the returned value and pass
+// it with WithConfig; the package default itself is immutable and safe for
+// concurrent New/Open/Decode.
 func DefaultConfig() Config {
 	return defaultConfig
 }
@@ -60,20 +72,25 @@ func WithConfig(c Config) Option {
 	return func(dst *Config) { *dst = c }
 }
 
+// WithLimits sets decode resource caps for Open, Decode, DecodeBytes, and related entry points.
+func WithLimits(l Limits) Option {
+	return func(c *Config) { c.Limits = l }
+}
+
 // Anchor is a 9-point pivot used by Cover, Crop, Place, and related helpers.
 // String literals such as "center" still convert; prefer the exported constants.
 type Anchor = modifier.Anchor
 
 const (
-	AnchorTopLeft      = modifier.AnchorTopLeft
-	AnchorTop          = modifier.AnchorTop
-	AnchorTopRight     = modifier.AnchorTopRight
-	AnchorLeft         = modifier.AnchorLeft
-	AnchorCenter       = modifier.AnchorCenter
-	AnchorRight        = modifier.AnchorRight
-	AnchorBottomLeft   = modifier.AnchorBottomLeft
-	AnchorBottom       = modifier.AnchorBottom
-	AnchorBottomRight  = modifier.AnchorBottomRight
+	AnchorTopLeft     = modifier.AnchorTopLeft
+	AnchorTop         = modifier.AnchorTop
+	AnchorTopRight    = modifier.AnchorTopRight
+	AnchorLeft        = modifier.AnchorLeft
+	AnchorCenter      = modifier.AnchorCenter
+	AnchorRight       = modifier.AnchorRight
+	AnchorBottomLeft  = modifier.AnchorBottomLeft
+	AnchorBottom      = modifier.AnchorBottom
+	AnchorBottomRight = modifier.AnchorBottomRight
 )
 
 // ParseAnchor canonicalizes a 9-point position name or a documented synonym.
@@ -152,12 +169,20 @@ func applyGeometryOptions(base geometrySettings, opts []GeometryOption) geometry
 // EncodeOptions controls format-specific encoding.
 // Quality defaults to 80 when zero. Callers pass at most one EncodeOptions
 // value; extra values are an error rather than silently ignored.
+//
+// Support matrix (unset/zero values are ignored):
+//
+//	JPEG: Quality (1–100, default 80)
+//	PNG, GIF, BMP, TIFF, WebP: no extra options
+//
+// Progressive, Indexed, Interlaced, Bitdepth, and Quality on non-JPEG
+// formats return ErrNotSupported. WebP is lossless VP8L only.
 type EncodeOptions struct {
-	Quality     int  // JPEG/WebP 0–100; default 80
-	Progressive bool // JPEG (best-effort; stdlib writes baseline)
-	Indexed     bool // PNG palette
-	Interlaced  bool // PNG/GIF
-	Bitdepth    int  // PNG
+	Quality     int  // JPEG 1–100; 0 means default 80. Unsupported on other formats.
+	Progressive bool // unsupported; JPEG stdlib writes baseline
+	Indexed     bool // unsupported; PNG palette encoding is not implemented
+	Interlaced  bool // unsupported
+	Bitdepth    int  // unsupported
 }
 
 func (o EncodeOptions) qualityOrDefault() int {
@@ -168,6 +193,46 @@ func (o EncodeOptions) qualityOrDefault() int {
 		return 100
 	}
 	return o.Quality
+}
+
+func (o EncodeOptions) validate(format Format) error {
+	switch format {
+	case FormatJPEG:
+		if o.Progressive {
+			return wrap(ErrNotSupported, "JPEG progressive encoding is not supported")
+		}
+		if o.Indexed {
+			return wrap(ErrNotSupported, "JPEG does not support Indexed")
+		}
+		if o.Interlaced {
+			return wrap(ErrNotSupported, "JPEG does not support Interlaced")
+		}
+		if o.Bitdepth != 0 {
+			return wrap(ErrNotSupported, "JPEG does not support Bitdepth")
+		}
+		return nil
+	case FormatWEBP:
+		if o.Quality != 0 {
+			return wrap(ErrNotSupported, "WebP encoding is lossless VP8L; Quality is not supported")
+		}
+	default:
+		if o.Quality != 0 {
+			return wrap(ErrNotSupported, "%s encoding does not support Quality", format)
+		}
+	}
+	if o.Progressive {
+		return wrap(ErrNotSupported, "%s encoding does not support Progressive", format)
+	}
+	if o.Indexed {
+		return wrap(ErrNotSupported, "%s encoding does not support Indexed", format)
+	}
+	if o.Interlaced {
+		return wrap(ErrNotSupported, "%s encoding does not support Interlaced", format)
+	}
+	if o.Bitdepth != 0 {
+		return wrap(ErrNotSupported, "%s encoding does not support Bitdepth", format)
+	}
+	return nil
 }
 
 func applyOptions(opts []Option) Config {

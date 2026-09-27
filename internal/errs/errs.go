@@ -11,6 +11,7 @@ var (
 	ErrInvalidDimensions = fmt.Errorf("invalid dimensions")
 	ErrColor             = fmt.Errorf("color error")
 	ErrInput             = fmt.Errorf("input error")
+	ErrLimit             = fmt.Errorf("resource limit exceeded")
 	ErrNotSupported      = fmt.Errorf("not supported")
 	ErrNotWritable       = fmt.Errorf("not writable")
 	ErrAnimation         = fmt.Errorf("animation error")

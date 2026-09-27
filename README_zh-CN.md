@@ -73,7 +73,7 @@ img := goimage.Open("photo.jpg", goimage.WithAutoOrientation(true))
 | `New` | 画布宽高 |
 | `Animate` | 帧构建回调 |
 
-Functional Options（`WithAutoOrientation`、`WithDecodeAnimation`、`WithBlendingColor`、`WithStrip`）作用于单次调用。多图共享配置用 `Config` / `DefaultConfig()`，再通过 `WithConfig` 传入：
+Functional Options（`WithAutoOrientation`、`WithDecodeAnimation`、`WithBlendingColor`、`WithStrip`、`WithLimits`）作用于单次调用。多图共享配置用 `Config` / `DefaultConfig()`，再通过 `WithConfig` 传入。`Limits` 字段为 0 表示不限制。
 
 ```go
 cfg := goimage.DefaultConfig()
@@ -128,7 +128,8 @@ _, _ = enc.WriteTo(w) // http.ResponseWriter、Gin 或任意 io.Writer
 ## 测试
 
 ```bash
-go test -v ./...
+go test -v -race ./...
+go vet ./...
 ```
 
 ## 许可证

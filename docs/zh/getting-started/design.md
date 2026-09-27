@@ -14,7 +14,7 @@ raw := goimage.Decode(reader)
 
 ## Functional Options
 
-`opts ...Option` 可用于 `Open`、`Decode`、`DecodeBytes`、`FromImage`、`New`、`Animate`。每次调用都会复制 `DefaultConfig()` 再应用函数。并发调用方不会共享可变全局状态。
+`opts ...Option` 可用于 `Open`、`Decode`、`DecodeBytes`、`FromImage`、`New`、`Animate`。每次调用都会复制 `DefaultConfig()` 再应用函数。并发调用方不会共享可变全局状态。`WithLimits` 限制输入字节、宽高、总像素和 GIF 帧数；字段为 0 表示不限制。
 
 几何辅助方法（`Cover`、`Contain`、`Pad`、`Crop`、`Fit`、`ResizeCanvas`）接受 `...GeometryOption`：
 

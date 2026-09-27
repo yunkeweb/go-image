@@ -3,6 +3,9 @@ package encoder
 import (
 	"bytes"
 	"encoding/binary"
+	"image"
+	"image/color"
+	"image/gif"
 	"testing"
 )
 
@@ -80,5 +83,29 @@ func TestParseJPEGExifCorrupt(t *testing.T) {
 	}
 	if _, got := ParseJPEGExif(jpegWithExif(0, true)); got != 1 {
 		t.Fatalf("orient 0 got %d", got)
+	}
+}
+
+func TestCountGIFFrames(t *testing.T) {
+	pal := color.Palette{color.Black, color.White}
+	g := &gif.GIF{LoopCount: 0}
+	for i := 0; i < 3; i++ {
+		p := image.NewPaletted(image.Rect(0, 0, 2, 2), pal)
+		g.Image = append(g.Image, p)
+		g.Delay = append(g.Delay, 5)
+	}
+	var buf bytes.Buffer
+	if err := gif.EncodeAll(&buf, g); err != nil {
+		t.Fatal(err)
+	}
+	n, err := CountGIFFrames(buf.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 3 {
+		t.Fatalf("frames %d", n)
+	}
+	if _, err := CountGIFFrames([]byte("notgif")); err == nil {
+		t.Fatal("expected error")
 	}
 }

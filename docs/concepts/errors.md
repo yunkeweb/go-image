@@ -25,7 +25,8 @@ func (e EncodedImage) Result() ([]byte, error)
 | `ErrInvalidDimensions` | Width or height is `0` or negative |
 | `ErrColor` | Unparseable color |
 | `ErrInput` | Bad argument (animation index, nil watermark) |
-| `ErrNotSupported` | AVIF / HEIC / JPEG 2000, or trim on animation |
+| `ErrLimit` | Decode exceeded `Limits` (`MaxInputBytes`, size, pixels, or frames) |
+| `ErrNotSupported` | AVIF / HEIC / JPEG 2000, trim on animation, or an unimplemented encode option |
 | `ErrNotWritable` | Filesystem write failure |
 | `ErrAnimation` | Empty animation builder or nil frame |
 | `ErrFont` | Font file load failure |

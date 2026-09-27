@@ -28,6 +28,7 @@ var (
 	ErrInvalidDimensions = errs.ErrInvalidDimensions
 	ErrColor             = errs.ErrColor
 	ErrInput             = errs.ErrInput
+	ErrLimit             = errs.ErrLimit
 	ErrNotSupported      = errs.ErrNotSupported
 	ErrNotWritable       = errs.ErrNotWritable
 	ErrAnimation         = errs.ErrAnimation
@@ -320,7 +321,7 @@ func parseRGBFunc(s string) (Color, error) {
 	return c, nil
 }
 
-func clamp8(v int) uint8 { return intcolor.Clamp8(v) }
+func clamp8(v int) uint8         { return intcolor.Clamp8(v) }
 func clampInt(v, lo, hi int) int { return intcolor.ClampInt(v, lo, hi) }
 
 // NRGBA converts c to color.NRGBA.
@@ -1639,6 +1640,7 @@ type Drawable struct {
 
 // Size sets the drawable width and height.
 func (d *Drawable) Size(w, h int) *Drawable { d.Width, d.Height = w, h; return d }
+
 // SetWidth sets the drawable width.
 func (d *Drawable) SetWidth(w int) *Drawable { d.Width = w; return d }
 
@@ -2044,6 +2046,9 @@ func (img *Image) Encode(format Format, opts ...EncodeOptions) EncodedImage {
 	if err != nil {
 		return encodedErr(err)
 	}
+	if err := o.validate(format); err != nil {
+		return encodedErr(err)
+	}
 	src := img
 	if img.cfg.Strip {
 		src = img.Clone().RemoveProfile()
@@ -2159,6 +2164,7 @@ func (img *Image) ToJPEG(quality ...int) EncodedImage {
 	}
 	return img.Encode(FormatJPEG, o)
 }
+
 // ToJPG is an alias of ToJPEG.
 //
 // Deprecated: Use ToJPEG instead.
@@ -2171,7 +2177,8 @@ func (img *Image) ToPNG(opts ...EncodeOptions) EncodedImage { return img.Encode(
 // ToGIF encodes a GIF. At most one EncodeOptions value is accepted.
 func (img *Image) ToGIF(opts ...EncodeOptions) EncodedImage { return img.Encode(FormatGIF, opts...) }
 
-// ToWebP encodes a lossless VP8L WebP. At most one EncodeOptions value is accepted.
+// ToWebP encodes a lossless VP8L WebP. Quality and other EncodeOptions fields
+// are not implemented; non-zero values return ErrNotSupported.
 // Error handling: Check the returned EncodedImage with Err, Result, Save, or WriteTo.
 func (img *Image) ToWebP(opts ...EncodeOptions) EncodedImage { return img.Encode(FormatWEBP, opts...) }
 
@@ -2207,6 +2214,7 @@ func (img *Image) ToJP2(opts ...EncodeOptions) EncodedImage { return img.ToJPEG2
 func (img *Image) ToAVIF(opts ...EncodeOptions) EncodedImage {
 	return encodedErr(wrap(ErrNotSupported, "AVIF encoding is not supported by the Go driver"))
 }
+
 // ToHEIC returns ErrNotSupported; the Go driver does not encode HEIC.
 func (img *Image) ToHEIC(opts ...EncodeOptions) EncodedImage {
 	return encodedErr(wrap(ErrNotSupported, "HEIC encoding is not supported by the Go driver"))

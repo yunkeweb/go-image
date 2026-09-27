@@ -23,6 +23,9 @@ func FromImage(src image.Image, opts ...Option) *Image
 | `WithDecodeAnimation` | `bool` | `true` | Keep all GIF frames; `false` keeps the first frame |
 | `WithBlendingColor` | `any` | `"ffffff"` | Flatten color for JPEG encode |
 | `WithStrip` | `bool` | `false` | Drop ICC profile bytes on encode |
+| `WithLimits` | `Limits` | all zeros | Decode resource caps; zero fields are unlimited |
+
+`Limits` is checked in `Open`, `Decode`, `DecodeBytes`, and `DecodeDataURI` before pixel buffers are allocated. `MaxPixels` is `width × height` for still images and `width × height × frames` for GIF. Over-limit input returns `ErrLimit`.
 
 ## Encode API
 
@@ -49,10 +52,12 @@ func (e EncodedImage) ToDataURI() string
 | Field / arg | Type | Default | Notes |
 |-------------|------|---------|-------|
 | `ToJPEG` quality | `...int` | `80` | Clamped 1–100; `<= 0` uses 80 |
-| `EncodeOptions.Quality` | `int` | `80` | JPEG / WebP |
-| `EncodeOptions.Progressive` | `bool` | `false` | Accepted; stdlib JPEG writes baseline |
-| `EncodeOptions.Indexed` | `bool` | `false` | PNG palette |
-| WebP | | | Lossless VP8L only |
+| `EncodeOptions.Quality` | `int` | `80` | JPEG only. Non-zero on PNG/GIF/WebP/BMP/TIFF is `ErrNotSupported` |
+| `EncodeOptions.Progressive` | `bool` | `false` | Unsupported (`ErrNotSupported` when true) |
+| `EncodeOptions.Indexed` | `bool` | `false` | Unsupported when true |
+| `EncodeOptions.Interlaced` | `bool` | `false` | Unsupported when true |
+| `EncodeOptions.Bitdepth` | `int` | `0` | Unsupported when non-zero |
+| WebP | | | Lossless VP8L only; `Quality` is not applied |
 
 `ToAVIF`, `ToHEIC`, and `ToJPEG2000` return an `EncodedImage` whose `Err()` is `ErrNotSupported`.
 
@@ -107,7 +112,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	png := img.ToPNG(goimage.EncodeOptions{Indexed: false})
+	png := img.ToPNG()
 	if err := png.Save("out.png"); err != nil {
 		log.Fatal(err)
 	}

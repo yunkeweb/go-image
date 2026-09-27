@@ -24,7 +24,13 @@ import (
 
 func thumbnail(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 12<<20)
-	img := goimage.Decode(r.Body).Cover(400, 300).Sharpen(8)
+	img := goimage.Decode(r.Body, goimage.WithLimits(goimage.Limits{
+		MaxInputBytes: 12 << 20,
+		MaxWidth:      8000,
+		MaxHeight:     8000,
+		MaxPixels:     20_000_000,
+		MaxFrames:     24,
+	})).Cover(400, 300).Sharpen(8)
 	if err := img.Err(); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
